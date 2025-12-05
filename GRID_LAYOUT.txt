@@ -1,0 +1,96 @@
+OCEANIC.IO - GRID LAYOUT (20x20)
+================================
+
+Legend:
+  P1 = Player 1 Base (Top-Left, Blue)
+  P2 = Player 2 Base (Top-Right, Red)
+  P3 = Player 3 Base (Bottom-Left, Green)
+  P4 = Player 4 Base (Bottom-Right, Gold)
+  ## = Trench (Impassable)
+  [] = Bridge (Passable)
+  .. = Open Water (Passable)
+
+Grid Layout (simplified view):
+
+     0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19
+   +----------------------------------------------------------+
+ 0 |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . |
+ 1 |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . |
+ 2 |  .  . ##  .  .  .  .  .  .  . P1  .  .  .  .  .  . ##  .  . |
+ 3 |  .  .  . ##  .  .  .  .  .  .  .  .  .  .  .  . ##  .  .  . |
+ 4 |  .  .  .  . ##  .  .  .  .  .  .  .  .  .  . ##  .  .  .  . |
+ 5 |  .  .  .  .  . ##  .  .  .  .  .  .  .  . ##  .  .  .  .  . |
+ 6 |  .  .  .  .  .  . ##  .  .  .  .  .  .B2##  .  .  .  .  .  . |
+ 7 |  .  .  .  .  .  .B1==  .  .  .  . ##==  .  .  .  .  .  .  . |
+ 8 |  .  .  .  .  .  .  . ##  .  .B2##  .  .  .  .  .  .  .  .  . |
+ 9 |  .  .  .  .  .  .  .  . ##  .  .  .  .  .  .  .  .  .  .  . |
+10 | P4  .  .  .  .  .  .  .  . ##  .  .  .  .  .  .  .  . P2  . |
+11 |  .  .  .  .  .  .  .  .  .  . ##  .  .  .  .  .  .  .  .  . |
+12 |  .  .  .  .  .  .  .  . ##  .  .  . ##  .  .  .  .  .  .  . |
+13 |  .  .  .  .  .  .  . ##  .  .  .  .  . ##  .  .  .  .  .  . |
+14 |  .  .  .  .  .  . ##  .  .  .  .  .  .  . ##  .  .  .  .  . |
+15 |  .  .  .  .  . ##  .  .  .  .  .  .  .  .  . ##  .  .  .  . |
+16 |  .  .  .  . ##  .  .  .  .  .  .  .  .  .  .  . ##  .  .  . |
+17 |  .  . ##  .  .  .  .  .  .  . P3  .  .  .  .  .  . ##  .  . |
+18 |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . |
+19 |  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . |
+   +----------------------------------------------------------+
+
+Legend Update:
+  P1 = Player 1 Base (Top/North, Blue)
+  P2 = Player 2 Base (Right/East, Red)
+  P3 = Player 3 Base (Bottom/South, Green)
+  P4 = Player 4 Base (Left/West, Gold)
+  ## = Trench (Impassable)
+  B1 = Bridge 1 at (7,7) - NW Quadrant
+  B2 = Bridge 2 at (13,7) - NE Quadrant
+  == = Bridge crossing area
+  .. = Open Water (Passable)
+
+BRIDGE LOCATIONS:
+=================
+Only 2 Bridges - Positioned in separate quadrants:
+
+Bridge 1 (Northwest Quadrant):
+  - Position: (7, 7)
+  - Angle: 45° (diagonal \)
+  - Crosses: Top-left to bottom-right diagonal
+  - Cleared cells: (6,6), (7,7), (8,8)
+
+Bridge 2 (Northeast Quadrant):
+  - Position: (13, 7)
+  - Angle: -45° (diagonal /)
+  - Crosses: Top-right to bottom-left diagonal
+  - Cleared cells: (12,8), (13,7), (14,6)
+
+PLAYER STARTING POSITIONS:
+==========================
+  - Player 1 (Blue):  Grid (10, 2)  - Top Edge (North)
+  - Player 2 (Red):   Grid (17, 10) - Right Edge (East)
+  - Player 3 (Green): Grid (10, 17) - Bottom Edge (South)
+  - Player 4 (Gold):  Grid (2, 10)  - Left Edge (West)
+
+Note: Bases are positioned at the midpoints between the X arms,
+      forming a cardinal cross pattern (N/S/E/W) around the center.
+
+STRATEGIC NOTES:
+================
+1. The X-shaped trench divides the map into 4 quadrants
+2. Each player starts at a cardinal direction (N/S/E/W)
+3. Two bridges in separate quadrants provide crossing points
+4. Bridge 1 (NW) and Bridge 2 (NE) are separate strategic objectives
+5. Players must choose which bridge to contest
+6. No single central crossing - creates asymmetric gameplay
+7. Each player has different optimal routes to opponents
+8. Control both bridges for full map mobility
+9. Defensive units patrol around their home base
+10. Offensive units must navigate to bridges to cross trenches
+
+TURN SYSTEM:
+============
+- Each player gets 30 seconds per turn
+- Deploy units during your turn
+- Units move and attack automatically
+- Click "END TURN" to pass to next player
+- Turns auto-advance when timer expires
+

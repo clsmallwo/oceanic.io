@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  server:
+    build: ./server
+    container_name: oceanic_server
+    ports:
+      - "38081:3001"   # unconventional external port -> internal 3001
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    networks:
+      - oceanic_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001', (r) => {process.exit(r.statusCode === 404 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  client:
+    build: ./client
+    container_name: oceanic_client
+    ports:
+      - "38080:80"     # unconventional external port for the web UI
+    depends_on:
+      - server
+    networks:
+      - oceanic_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  oceanic_network:
+    driver: bridge

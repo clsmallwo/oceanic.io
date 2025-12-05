@@ -1,0 +1,26 @@
+internal/modules/cjs/loader.js:818
+  throw err;
+  ^
+
+Error: Cannot find module 'node:events'
+Require stack:
+- /home/ubuntu/oceanic.io/server/node_modules/express/lib/express.js
+- /home/ubuntu/oceanic.io/server/node_modules/express/index.js
+- /home/ubuntu/oceanic.io/server/index.js
+    at Function.Module._resolveFilename (internal/modules/cjs/loader.js:815:15)
+    at Function.Module._load (internal/modules/cjs/loader.js:667:27)
+    at Module.require (internal/modules/cjs/loader.js:887:19)
+    at require (internal/modules/cjs/helpers.js:85:18)
+    at Object.<anonymous> (/home/ubuntu/oceanic.io/server/node_modules/express/lib/express.js:16:20)
+    at Module._compile (internal/modules/cjs/loader.js:999:30)
+    at Object.Module._extensions..js (internal/modules/cjs/loader.js:1027:10)
+    at Module.load (internal/modules/cjs/loader.js:863:32)
+    at Function.Module._load (internal/modules/cjs/loader.js:708:14)
+    at Module.require (internal/modules/cjs/loader.js:887:19) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/ubuntu/oceanic.io/server/node_modules/express/lib/express.js',
+    '/home/ubuntu/oceanic.io/server/node_modules/express/index.js',
+    '/home/ubuntu/oceanic.io/server/index.js'
+  ]
+}

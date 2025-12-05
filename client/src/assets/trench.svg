@@ -1,0 +1,46 @@
+<svg width="50" height="50" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+  <!-- Deep Ocean Trench/Chasm -->
+  <defs>
+    <radialGradient id="trenchGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+      <stop offset="40%" style="stop-color:#0a0a0a;stop-opacity:1" />
+      <stop offset="80%" style="stop-color:#001a33;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#002b4d;stop-opacity:1" />
+    </radialGradient>
+    <filter id="trenchShadow">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Base trench -->
+  <rect width="50" height="50" fill="url(#trenchGradient)"/>
+  
+  <!-- Jagged edges to simulate depth -->
+  <path d="M0,0 L5,3 L10,1 L15,4 L20,2 L25,5 L30,3 L35,6 L40,4 L45,7 L50,5 L50,0 Z" 
+        fill="#000000" opacity="0.4"/>
+  <path d="M0,50 L5,47 L10,49 L15,46 L20,48 L25,45 L30,47 L35,44 L40,46 L45,43 L50,45 L50,50 Z" 
+        fill="#000000" opacity="0.4"/>
+  
+  <!-- Vertical depth lines -->
+  <line x1="0" y1="0" x2="0" y2="50" stroke="#000000" stroke-width="1" opacity="0.6"/>
+  <line x1="50" y1="0" x2="50" y2="50" stroke="#000000" stroke-width="1" opacity="0.6"/>
+  
+  <!-- Some rock details -->
+  <circle cx="15" cy="15" r="3" fill="#1a1a1a" opacity="0.5"/>
+  <circle cx="35" cy="20" r="2" fill="#1a1a1a" opacity="0.5"/>
+  <circle cx="25" cy="35" r="2.5" fill="#1a1a1a" opacity="0.5"/>
+  
+  <!-- Dark vignette -->
+  <rect width="50" height="50" fill="url(#trenchGradient)" opacity="0.3" filter="url(#trenchShadow)"/>
+</svg>
+
+
+

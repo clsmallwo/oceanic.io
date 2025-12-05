@@ -1,0 +1,17 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sharkBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4FC3F7" />
+      <stop offset="100%" stop-color="#0288D1" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" ry="24" fill="#001e3c"/>
+  <path d="M16 72 C 40 40, 80 40, 112 64 C 88 72, 72 84, 40 88 Z" fill="url(#sharkBody)"/>
+  <path d="M54 50 L70 22 L74 50 Z" fill="#0277BD"/>
+  <circle cx="78" cy="60" r="4" fill="#fff"/>
+  <circle cx="79" cy="60" r="2" fill="#000"/>
+  <path d="M84 70 C88 74, 96 74, 102 70" stroke="#fff" stroke-width="2" fill="none"/>
+</svg>
+
+
+

@@ -1,0 +1,21 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="24" ry="24" fill="#001e3c"/>
+  <defs>
+    <linearGradient id="jellyBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E1BEE7" />
+      <stop offset="100%" stop-color="#AB47BC" />
+    </linearGradient>
+  </defs>
+  <ellipse cx="64" cy="52" rx="26" ry="20" fill="url(#jellyBody)"/>
+  <circle cx="54" cy="50" r="4" fill="#fff"/>
+  <circle cx="74" cy="50" r="4" fill="#fff"/>
+  <circle cx="54" cy="50" r="2" fill="#000"/>
+  <circle cx="74" cy="50" r="2" fill="#000"/>
+  <path d="M44 64 Q48 74, 44 84" stroke="#CE93D8" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M56 64 Q60 78, 56 90" stroke="#CE93D8" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M72 64 Q76 78, 72 90" stroke="#CE93D8" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M84 64 Q88 74, 84 84" stroke="#CE93D8" stroke-width="3" fill="none" stroke-linecap="round"/>
+</svg>
+
+
+

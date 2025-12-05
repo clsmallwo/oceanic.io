@@ -1,0 +1,59 @@
+<svg width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg">
+  <!-- Narrow Wooden Bridge for crossing diagonal trenches -->
+  <defs>
+    <linearGradient id="woodGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#8B4513;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#A0522D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#654321;stop-opacity:1" />
+    </linearGradient>
+    <pattern id="woodGrain" x="0" y="0" width="15" height="50" patternUnits="userSpaceOnUse">
+      <rect width="15" height="50" fill="url(#woodGradient)"/>
+      <path d="M0,5 Q4,8 8,5 T15,5" stroke="#654321" stroke-width="0.5" fill="none" opacity="0.3"/>
+      <path d="M0,15 Q4,18 8,15 T15,15" stroke="#654321" stroke-width="0.5" fill="none" opacity="0.3"/>
+      <path d="M0,25 Q4,28 8,25 T15,25" stroke="#654321" stroke-width="0.5" fill="none" opacity="0.3"/>
+      <path d="M0,35 Q4,38 8,35 T15,35" stroke="#654321" stroke-width="0.5" fill="none" opacity="0.3"/>
+      <path d="M0,45 Q4,48 8,45 T15,45" stroke="#654321" stroke-width="0.5" fill="none" opacity="0.3"/>
+    </pattern>
+    
+    <!-- Shadow filter -->
+    <filter id="bridgeShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="0" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.4"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Base platform with rounded ends -->
+  <rect x="5" y="10" width="190" height="30" fill="url(#woodGradient)" rx="8" filter="url(#bridgeShadow)"/>
+  
+  <!-- Wooden planks running lengthwise -->
+  <g opacity="0.95">
+    <rect x="10" y="12" width="180" height="8" fill="url(#woodGrain)" stroke="#5C3317" stroke-width="0.5"/>
+    <rect x="10" y="22" width="180" height="8" fill="url(#woodGrain)" stroke="#5C3317" stroke-width="0.5"/>
+    <rect x="10" y="32" width="180" height="8" fill="url(#woodGrain)" stroke="#5C3317" stroke-width="0.5"/>
+  </g>
+  
+  <!-- Cross beams/supports -->
+  <rect x="40" y="10" width="4" height="30" fill="#654321" opacity="0.7"/>
+  <rect x="80" y="10" width="4" height="30" fill="#654321" opacity="0.7"/>
+  <rect x="100" y="10" width="4" height="30" fill="#654321" opacity="0.7"/>
+  <rect x="120" y="10" width="4" height="30" fill="#654321" opacity="0.7"/>
+  <rect x="160" y="10" width="4" height="30" fill="#654321" opacity="0.7"/>
+  
+  <!-- Rope/nail details at ends -->
+  <circle cx="15" cy="17" r="2" fill="#8B7355"/>
+  <circle cx="15" cy="33" r="2" fill="#8B7355"/>
+  <circle cx="185" cy="17" r="2" fill="#8B7355"/>
+  <circle cx="185" cy="33" r="2" fill="#8B7355"/>
+  
+  <!-- Edge highlighting for depth -->
+  <rect x="5" y="10" width="190" height="2" fill="#A0522D" opacity="0.6"/>
+  <rect x="5" y="38" width="190" height="2" fill="#3E2723" opacity="0.5"/>
+</svg>
+

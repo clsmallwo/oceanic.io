@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="minoBody" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF69B4" />
+      <stop offset="100%" stop-color="#FF1493" />
+    </linearGradient>
+    <linearGradient id="minoSpeed" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFB6C1" />
+      <stop offset="100%" stop-color="#FF1493" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" ry="24" fill="#001e3c"/>
+  <!-- Sleek streamlined body for speed -->
+  <ellipse cx="64" cy="64" rx="45" ry="25" fill="url(#minoBody)"/>
+  <!-- Speed lines/trails -->
+  <path d="M20 64 L30 58 L30 70 Z" fill="url(#minoSpeed)" opacity="0.7"/>
+  <path d="M25 64 L35 60 L35 68 Z" fill="url(#minoSpeed)" opacity="0.5"/>
+  <!-- Sharp fin -->
+  <path d="M90 50 L108 40 L100 64 L90 64 Z" fill="#DC143C"/>
+  <!-- Eye -->
+  <circle cx="75" cy="60" r="5" fill="#fff"/>
+  <circle cx="76" cy="60" r="3" fill="#000"/>
+  <!-- Streamlined tail -->
+  <path d="M20 64 L10 50 L10 78 Z" fill="url(#minoBody)"/>
+  <!-- Speed streaks -->
+  <path d="M40 50 L45 48 L45 52 Z" fill="#FFB6C1" opacity="0.6"/>
+  <path d="M50 55 L55 53 L55 57 Z" fill="#FFB6C1" opacity="0.6"/>
+</svg>
+
