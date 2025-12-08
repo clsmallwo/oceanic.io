@@ -408,12 +408,65 @@ const Game = () => {
             });
         }
 
-        // Draw Bases - make bases and indicators larger
+        // Draw Bases as Castles - retain player colors
         Object.values(gameState.players).forEach(p => {
+            const castleX = p.x;
+            const castleY = p.y;
+            const castleSize = 70;
+            
+            ctx.save();
+            
+            // Castle base (main structure) - use player color
             ctx.fillStyle = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, 70, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(castleX - castleSize, castleY - castleSize * 0.3, castleSize * 2, castleSize * 1.2);
+            
+            // Castle walls with darker shade for depth
+            const darkerColor = darkenColor(p.color, 0.2);
+            ctx.fillStyle = darkerColor;
+            
+            // Left wall
+            ctx.fillRect(castleX - castleSize, castleY - castleSize * 0.3, castleSize * 0.3, castleSize * 1.2);
+            // Right wall
+            ctx.fillRect(castleX + castleSize * 0.7, castleY - castleSize * 0.3, castleSize * 0.3, castleSize * 1.2);
+            
+            // Castle battlements (top crenellations)
+            const battlementWidth = castleSize * 0.4;
+            const battlementHeight = castleSize * 0.25;
+            const numBattlements = 5;
+            const spacing = (castleSize * 2) / numBattlements;
+            
+            ctx.fillStyle = p.color;
+            for (let i = 0; i < numBattlements; i++) {
+                const x = castleX - castleSize + i * spacing + spacing * 0.1;
+                ctx.fillRect(x, castleY - castleSize * 0.3 - battlementHeight, battlementWidth, battlementHeight);
+            }
+            
+            // Central tower (taller)
+            const towerWidth = castleSize * 0.6;
+            const towerHeight = castleSize * 0.8;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(castleX - towerWidth / 2, castleY - castleSize * 0.3 - towerHeight, towerWidth, towerHeight);
+            
+            // Tower battlements
+            const towerBattlementWidth = towerWidth * 0.3;
+            const towerBattlementHeight = castleSize * 0.2;
+            ctx.fillRect(castleX - towerWidth / 2, castleY - castleSize * 0.3 - towerHeight - towerBattlementHeight, towerBattlementWidth, towerBattlementHeight);
+            ctx.fillRect(castleX + towerWidth / 2 - towerBattlementWidth, castleY - castleSize * 0.3 - towerHeight - towerBattlementHeight, towerBattlementWidth, towerBattlementHeight);
+            
+            // Tower window
+            ctx.fillStyle = 'rgba(255, 255, 200, 0.6)';
+            ctx.fillRect(castleX - towerWidth * 0.15, castleY - castleSize * 0.5, towerWidth * 0.3, towerWidth * 0.3);
+            ctx.strokeStyle = darkerColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(castleX - towerWidth * 0.15, castleY - castleSize * 0.5, towerWidth * 0.3, towerWidth * 0.3);
+            
+            // Castle outline/border
+            ctx.strokeStyle = darkerColor;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(castleX - castleSize, castleY - castleSize * 0.3, castleSize * 2, castleSize * 1.2);
+            ctx.strokeRect(castleX - towerWidth / 2, castleY - castleSize * 0.3 - towerHeight, towerWidth, towerHeight);
+            
+            ctx.restore();
 
             // Base HP Bar
             ctx.fillStyle = 'red';

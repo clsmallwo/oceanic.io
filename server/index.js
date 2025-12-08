@@ -393,7 +393,7 @@ const games = {};
 // Grid configuration
 const GRID_SIZE = 40; // 40x40 grid
 const CELL_SIZE = 50; // 50px per cell = 1000x1000 map
-const TURN_DURATION = 15; // 15 seconds per turn (faster paced)
+const TURN_DURATION = 30; // 30 seconds per turn
 
 // Calculate win probability for AI players based on statistics and game state
 function calculateWinProbability(game, playerId) {
@@ -862,8 +862,9 @@ function selectCounterCard(threat, availableCards) {
 
 // Strategic target selection
 function selectStrategicTarget(game, aiPlayer, enemies) {
-    // Filter enemies to only those in allowed 180-degree arc
+    // Filter enemies to only neighboring players or those in allowed 180-degree arc
     const allowedEnemies = enemies.filter(enemy => 
+        isNeighboringPlayer(aiPlayer.gridX, aiPlayer.gridY, enemy.gridX, enemy.gridY) ||
         isAllowedDirection(aiPlayer.gridX, aiPlayer.gridY, enemy.gridX, enemy.gridY)
     );
     
@@ -1774,8 +1775,10 @@ io.on('connection', (socket) => {
                     socket.emit('error', 'Invalid target');
                     return;
                 }
-                // Validate that target is in allowed 180-degree arc
-                if (!isAllowedDirection(player.gridX, player.gridY, targetPlayer.gridX, targetPlayer.gridY)) {
+                // Allow attacks on neighboring players (can always reach via bridges)
+                // Only restrict if it's not a neighboring player base
+                if (!isNeighboringPlayer(player.gridX, player.gridY, targetPlayer.gridX, targetPlayer.gridY) &&
+                    !isAllowedDirection(player.gridX, player.gridY, targetPlayer.gridX, targetPlayer.gridY)) {
                     socket.emit('error', 'Target is not in allowed direction (can only attack sides or opposite)');
                     return;
                 }
@@ -1943,8 +1946,32 @@ function isPassable(x, y, trenchSet) {
     return !trenchSet.has(key);
 }
 
-// A* pathfinding
-function findPath(startX, startY, endX, endY, trenchSet) {
+// Check if a position is on a bridge (within 3x3 area of any bridge)
+function isOnBridge(x, y, bridges) {
+    if (!bridges || !Array.isArray(bridges)) return false;
+    return bridges.some(bridge => {
+        const dx = Math.abs(x - bridge.x);
+        const dy = Math.abs(y - bridge.y);
+        return dx <= 1 && dy <= 1; // Within 3x3 area
+    });
+}
+
+// Check if a position is on the central cross-section bridge
+function isOnCentralBridge(x, y) {
+    const centerX = 20;
+    const centerY = 20;
+    const crossWidth = 3;
+    
+    // Check if on horizontal cross-section
+    const onHorizontal = Math.abs(y - centerY) <= Math.floor(crossWidth / 2);
+    // Check if on vertical cross-section
+    const onVertical = Math.abs(x - centerX) <= Math.floor(crossWidth / 2);
+    
+    return onHorizontal || onVertical;
+}
+
+// A* pathfinding with bridge preference
+function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
     const openSet = [];
     const closedSet = new Set();
     const cameFrom = new Map();
@@ -1991,7 +2018,27 @@ function findPath(startX, startY, endX, endY, trenchSet) {
             if (closedSet.has(neighborKey)) continue;
             if (!isPassable(neighbor.x, neighbor.y, trenchSet)) continue;
 
-            const tentativeGScore = (gScore.get(current.key) || Infinity) + 1;
+            // Calculate base movement cost
+            let movementCost = 1;
+            
+            // Check if we need to cross a bridge (path crosses from one side to another)
+            const needsBridge = needsBridgeCrossing(startX, startY, endX, endY, current.x, current.y, neighbor.x, neighbor.y);
+            
+            if (needsBridge) {
+                // Strongly prefer bridge tiles when crossing
+                const isNeighborOnBridge = bridges ? isOnBridge(neighbor.x, neighbor.y, bridges) : isOnCentralBridge(neighbor.x, neighbor.y);
+                const isCurrentOnBridge = bridges ? isOnBridge(current.x, current.y, bridges) : isOnCentralBridge(current.x, current.y);
+                
+                if (isNeighborOnBridge) {
+                    // Prefer bridge tiles - reduce cost significantly
+                    movementCost = 0.5;
+                } else if (!isCurrentOnBridge) {
+                    // Penalize non-bridge tiles when we should be on a bridge
+                    movementCost = 2.0;
+                }
+            }
+
+            const tentativeGScore = (gScore.get(current.key) || Infinity) + movementCost;
 
             if (!gScore.has(neighborKey) || tentativeGScore < gScore.get(neighborKey)) {
                 cameFrom.set(neighborKey, current.key);
@@ -2006,6 +2053,29 @@ function findPath(startX, startY, endX, endY, trenchSet) {
     }
 
     return []; // No path found
+}
+
+// Check if path needs to cross a bridge (crosses from one quadrant to another)
+function needsBridgeCrossing(startX, startY, endX, endY, currentX, currentY, nextX, nextY) {
+    // Determine quadrants
+    const centerX = GRID_SIZE / 2; // 20
+    const centerY = GRID_SIZE / 2; // 20
+    
+    // Check if start and end are on opposite sides of the center
+    const startSideX = startX < centerX ? 'left' : (startX > centerX ? 'right' : 'center');
+    const startSideY = startY < centerY ? 'top' : (startY > centerY ? 'bottom' : 'center');
+    const endSideX = endX < centerX ? 'left' : (endX > centerX ? 'right' : 'center');
+    const endSideY = endY < centerY ? 'top' : (endY > centerY ? 'bottom' : 'center');
+    
+    // If crossing center in X or Y direction, we need a bridge
+    const crossingX = (startSideX === 'left' && endSideX === 'right') || (startSideX === 'right' && endSideX === 'left');
+    const crossingY = (startSideY === 'top' && endSideY === 'bottom') || (startSideY === 'bottom' && endSideY === 'top');
+    
+    // Check if current position is near center and next position crosses center
+    const currentNearCenter = Math.abs(currentX - centerX) <= 3 && Math.abs(currentY - centerY) <= 3;
+    const nextNearCenter = Math.abs(nextX - centerX) <= 3 && Math.abs(nextY - centerY) <= 3;
+    
+    return (crossingX || crossingY) && (currentNearCenter || nextNearCenter);
 }
 
 function heuristic(x1, y1, x2, y2) {
@@ -2333,6 +2403,27 @@ function applyDefensiveTroopDamage(game, movingTroop, oldGridX, oldGridY, newGri
     }
 }
 
+// Check if a target is a neighboring player (one of the 3 valid neighbors: left, right, opposite)
+function isNeighboringPlayer(fromX, fromY, toX, toY) {
+    // Player positions are fixed:
+    // Top: (20, 4), Right: (36, 20), Bottom: (20, 36), Left: (4, 20)
+    const playerPositions = [
+        { x: 20, y: 4 },   // Top
+        { x: 36, y: 20 },  // Right
+        { x: 20, y: 36 },  // Bottom
+        { x: 4, y: 20 }    // Left
+    ];
+    
+    // Check if from and to are both player base positions
+    const fromIsBase = playerPositions.some(p => p.x === fromX && p.y === fromY);
+    const toIsBase = playerPositions.some(p => p.x === toX && p.y === toY);
+    
+    if (!fromIsBase || !toIsBase) return false;
+    
+    // If both are base positions, they are neighbors (can always reach via bridges)
+    return true;
+}
+
 // Check if a target position is within the allowed 180-degree arc from the starting position
 // Players can only move to sides (90 degrees) or opposite (180 degrees), not diagonally
 function isAllowedDirection(fromX, fromY, toX, toY) {
@@ -2530,9 +2621,10 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                 // Target is gone, pick new target
                 const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
                 if (enemies.length > 0) {
-                    // Filter enemies to only those in allowed 180-degree arc
+                    // Filter enemies to only neighboring players or those in allowed 180-degree arc
                     const ownerBase = game.players[troop.ownerId];
                     const allowedEnemies = enemies.filter(enemy => 
+                        isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, enemy.gridX, enemy.gridY) ||
                         isAllowedDirection(ownerBase.gridX, ownerBase.gridY, enemy.gridX, enemy.gridY)
                     );
                     
@@ -2561,15 +2653,21 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
 
         // Calculate path using A* if we don't have one or if we're close to end of path
         if (!troop.path || troop.path.length === 0) {
-            // Sometimes route through center bridge for variety (30% chance in automatic mode)
-            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet);
+            // Pass bridge information to pathfinding for strict bridge following
+            const bridges = game.terrain.bridges || [];
+            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
             
-            if (game.movementMode === 'automatic' && Math.random() < 0.3 && path.length > 0) {
+            // Check if target is a neighboring player base
+            const ownerBase = game.players[troop.ownerId];
+            const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
+            
+            // Only route through center bridge if NOT attacking a neighboring tower
+            if (game.movementMode === 'automatic' && !targetIsNeighboring && Math.random() < 0.3 && path.length > 0) {
                 // Try routing through center bridge
                 const centerX = 20;
                 const centerY = 20;
-                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet);
-                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet);
+                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
+                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
                 
                 if (path1.length > 0 && path2.length > 0) {
                     // Use center route if it's not too much longer (within 50% of direct path)
@@ -2613,15 +2711,22 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             if (troop.path.length < 3) {
                 const dist = Math.abs(troop.gridX - targetGridX) + Math.abs(troop.gridY - targetGridY);
                 if (dist > 1) {
-                    // Sometimes route through center bridge for variety (30% chance in automatic mode)
-                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet);
+                    // Pass bridge information to pathfinding for strict bridge following
+                    const bridges = game.terrain.bridges || [];
                     
-                    if (game.movementMode === 'automatic' && Math.random() < 0.3 && path.length > 0) {
+                    // Check if target is a neighboring player base
+                    const ownerBase = game.players[troop.ownerId];
+                    const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
+                    
+                    // Only route through center bridge if NOT attacking a neighboring tower
+                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
+                    
+                    if (game.movementMode === 'automatic' && !targetIsNeighboring && Math.random() < 0.3 && path.length > 0) {
                         // Try routing through center bridge
                         const centerX = 20;
                         const centerY = 20;
-                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet);
-                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet);
+                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
+                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
                         
                         if (path1.length > 0 && path2.length > 0) {
                             // Use center route if it's not too much longer (within 50% of direct path)
