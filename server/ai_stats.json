@@ -1,78 +1,83 @@
 {
-  "totalGames": 190,
-  "wins": 76,
-  "losses": 114,
+  "totalGames": 222,
+  "wins": 92,
+  "losses": 130,
+  "vsHumans": {
+    "wins": 6,
+    "losses": 4,
+    "games": 10
+  },
   "cardUsage": {
     "coral_wall": {
-      "played": 513,
-      "wins": 209,
-      "losses": 304,
+      "played": 587,
+      "wins": 243,
+      "losses": 344,
       "avgDamage": 0
     },
     "barracuda": {
-      "played": 1494,
-      "wins": 646,
-      "losses": 848,
+      "played": 1688,
+      "wins": 766,
+      "losses": 922,
       "avgDamage": 0
     },
     "turtle": {
-      "played": 359,
-      "wins": 155,
-      "losses": 204,
+      "played": 399,
+      "wins": 173,
+      "losses": 226,
       "avgDamage": 0
     },
     "sea_urchin": {
-      "played": 476,
-      "wins": 206,
-      "losses": 270,
+      "played": 520,
+      "wins": 218,
+      "losses": 302,
       "avgDamage": 0
     },
     "shark": {
-      "played": 1394,
-      "wins": 660,
-      "losses": 734,
+      "played": 1576,
+      "wins": 750,
+      "losses": 826,
       "avgDamage": 0
     },
     "orca": {
-      "played": 1477,
-      "wins": 692,
-      "losses": 785,
+      "played": 1597,
+      "wins": 748,
+      "losses": 849,
       "avgDamage": 0
     },
     "narwhal": {
-      "played": 442,
-      "wins": 218,
-      "losses": 224,
+      "played": 506,
+      "wins": 252,
+      "losses": 254,
       "avgDamage": 0
     },
     "jellyfish": {
-      "played": 1442,
-      "wins": 636,
-      "losses": 806,
+      "played": 1596,
+      "wins": 712,
+      "losses": 884,
       "avgDamage": 0
     },
     "crab": {
-      "played": 516,
-      "wins": 223,
-      "losses": 293,
+      "played": 582,
+      "wins": 247,
+      "losses": 335,
       "avgDamage": 0
     },
     "trident": {
-      "played": 1501,
-      "wins": 714,
-      "losses": 787,
+      "played": 1671,
+      "wins": 786,
+      "losses": 885,
       "avgDamage": 0
     },
     "turret": {
-      "played": 204,
-      "wins": 76,
-      "losses": 128,
+      "played": 214,
+      "wins": 84,
+      "losses": 130,
       "avgDamage": 0
     },
     "mino": {
-      "played": 1376,
-      "wins": 576,
-      "losses": 800,
+      "played": 1504,
+      "wins": 630,
+      "losses": 874,
       "avgDamage": 0
     },
     "leviathan": {
@@ -88,12 +93,12 @@
       "winRate": 0.3333333333333333
     },
     "offensivePlays": {
-      "count": 171,
-      "winRate": 0.40350877192982454
+      "count": 203,
+      "winRate": 0.4187192118226601
     },
     "earlyGame": {
-      "count": 154,
-      "winRate": 0.3896103896103897
+      "count": 180,
+      "winRate": 0.41111111111111126
     },
     "lateGame": {
       "count": 12,
@@ -101,169 +106,6 @@
     }
   },
   "gameHistory": [
-    {
-      "gameId": "room1",
-      "timestamp": 1764810684681,
-      "duration": 149.618,
-      "winner": "ai_room1_2",
-      "players": 4,
-      "cardUsage": {
-        "qfF49LA_AXydr7YaAAAF": {
-          "jellyfish": 3,
-          "orca": 3,
-          "trident": 4,
-          "shark": 2,
-          "barracuda": 2,
-          "sea_urchin": 3,
-          "coral_wall": 3
-        },
-        "ai_room1_0": {
-          "coral_wall": 2,
-          "barracuda": 3,
-          "turtle": 3,
-          "sea_urchin": 2,
-          "shark": 1,
-          "orca": 1,
-          "narwhal": 1
-        },
-        "ai_room1_1": {
-          "jellyfish": 4,
-          "coral_wall": 3,
-          "sea_urchin": 1,
-          "barracuda": 3,
-          "orca": 2,
-          "turtle": 1,
-          "narwhal": 1
-        },
-        "ai_room1_2": {
-          "narwhal": 2,
-          "barracuda": 3,
-          "orca": 2,
-          "sea_urchin": 4,
-          "shark": 4,
-          "turtle": 1,
-          "crab": 2,
-          "trident": 2,
-          "coral_wall": 1
-        }
-      }
-    },
-    {
-      "gameId": "room1",
-      "timestamp": 1764810993419,
-      "duration": 252.698,
-      "winner": "ai_room1_0",
-      "players": 2,
-      "cardUsage": {
-        "owVXb8iEJmt5oSNZAAAD": {
-          "shark": 6,
-          "barracuda": 6,
-          "turtle": 2,
-          "trident": 7,
-          "narwhal": 3,
-          "jellyfish": 6,
-          "orca": 6,
-          "crab": 2,
-          "coral_wall": 5,
-          "sea_urchin": 4
-        },
-        "ai_room1_0": {
-          "barracuda": 7,
-          "sea_urchin": 3,
-          "jellyfish": 6,
-          "narwhal": 6,
-          "turtle": 4,
-          "shark": 6,
-          "trident": 5,
-          "crab": 4,
-          "orca": 5,
-          "coral_wall": 3
-        }
-      }
-    },
-    {
-      "gameId": "room6",
-      "timestamp": 1764811126486,
-      "duration": 76.466,
-      "winner": "owVXb8iEJmt5oSNZAAAD",
-      "players": 2,
-      "cardUsage": {
-        "owVXb8iEJmt5oSNZAAAD": {
-          "narwhal": 1,
-          "orca": 1,
-          "barracuda": 2,
-          "turtle": 1,
-          "trident": 2,
-          "jellyfish": 2,
-          "crab": 2,
-          "shark": 1
-        },
-        "ai_room6_0": {
-          "orca": 1,
-          "barracuda": 3,
-          "narwhal": 2,
-          "shark": 3,
-          "turtle": 1,
-          "jellyfish": 1,
-          "coral_wall": 1
-        }
-      }
-    },
-    {
-      "gameId": "room1",
-      "timestamp": 1764811322267,
-      "duration": 116.331,
-      "winner": "daiR2bjeYGVcQAMcAAAF",
-      "players": 2,
-      "cardUsage": {
-        "daiR2bjeYGVcQAMcAAAF": {
-          "trident": 1,
-          "coral_wall": 4,
-          "shark": 1,
-          "narwhal": 2,
-          "crab": 3,
-          "barracuda": 3,
-          "orca": 4,
-          "turtle": 1
-        },
-        "ai_room1_0": {
-          "trident": 4,
-          "shark": 4,
-          "jellyfish": 2,
-          "sea_urchin": 3,
-          "crab": 3,
-          "barracuda": 2,
-          "coral_wall": 1,
-          "orca": 1
-        }
-      }
-    },
-    {
-      "gameId": "room11",
-      "timestamp": 1764811465550,
-      "duration": 100.065,
-      "winner": "ai_room11_0",
-      "players": 2,
-      "cardUsage": {
-        "rsiU-9JTRh5b7ENDAAAH": {
-          "orca": 2,
-          "shark": 1,
-          "crab": 1,
-          "barracuda": 4,
-          "turtle": 1,
-          "sea_urchin": 1,
-          "coral_wall": 2
-        },
-        "ai_room11_0": {
-          "orca": 2,
-          "shark": 2,
-          "narwhal": 1,
-          "trident": 1,
-          "turtle": 2,
-          "barracuda": 1
-        }
-      }
-    },
     {
       "gameId": "room10",
       "timestamp": 1764811811839,
@@ -3734,6 +3576,612 @@
           "coral_wall": 2
         }
       }
+    },
+    {
+      "gameId": "room3",
+      "timestamp": 1765253454532,
+      "duration": 154.35,
+      "winner": "ai_room3_2",
+      "players": 4,
+      "cardUsage": {
+        "eVPHcCOnSnFAMYmAAAAr": {
+          "orca": 2,
+          "trident": 2
+        },
+        "ai_room3_0": {
+          "orca": 1,
+          "mino": 6,
+          "coral_wall": 1,
+          "trident": 2,
+          "jellyfish": 4,
+          "narwhal": 1,
+          "sea_urchin": 4,
+          "barracuda": 3,
+          "shark": 2,
+          "crab": 1
+        },
+        "ai_room3_1": {
+          "jellyfish": 6,
+          "narwhal": 3,
+          "shark": 5,
+          "mino": 11,
+          "coral_wall": 5,
+          "trident": 7,
+          "orca": 11,
+          "barracuda": 9,
+          "turret": 1,
+          "turtle": 1,
+          "crab": 2,
+          "sea_urchin": 2
+        },
+        "ai_room3_2": {
+          "shark": 15,
+          "jellyfish": 8,
+          "narwhal": 3,
+          "crab": 3,
+          "mino": 5,
+          "barracuda": 17,
+          "trident": 5,
+          "turtle": 3,
+          "sea_urchin": 1,
+          "orca": 3,
+          "coral_wall": 3,
+          "turret": 2
+        }
+      }
+    },
+    {
+      "gameId": "room3",
+      "timestamp": 1765253454536,
+      "duration": 154.354,
+      "winner": "ai_room3_2",
+      "players": 4,
+      "cardUsage": {
+        "eVPHcCOnSnFAMYmAAAAr": {
+          "orca": 2,
+          "trident": 2
+        },
+        "ai_room3_0": {
+          "orca": 1,
+          "mino": 6,
+          "coral_wall": 1,
+          "trident": 2,
+          "jellyfish": 4,
+          "narwhal": 1,
+          "sea_urchin": 4,
+          "barracuda": 3,
+          "shark": 2,
+          "crab": 1
+        },
+        "ai_room3_1": {
+          "jellyfish": 6,
+          "narwhal": 3,
+          "shark": 5,
+          "mino": 11,
+          "coral_wall": 5,
+          "trident": 7,
+          "orca": 11,
+          "barracuda": 9,
+          "turret": 1,
+          "turtle": 1,
+          "crab": 2,
+          "sea_urchin": 2
+        },
+        "ai_room3_2": {
+          "shark": 15,
+          "jellyfish": 8,
+          "narwhal": 3,
+          "crab": 3,
+          "mino": 5,
+          "barracuda": 17,
+          "trident": 5,
+          "turtle": 3,
+          "sea_urchin": 1,
+          "orca": 3,
+          "coral_wall": 3,
+          "turret": 2
+        }
+      }
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254076869,
+      "duration": 10.57,
+      "winner": "ai_room1_2",
+      "players": 4,
+      "cardUsage": {
+        "ai_room1_0": {
+          "shark": 3,
+          "barracuda": 5,
+          "orca": 2,
+          "crab": 3,
+          "jellyfish": 3,
+          "trident": 3,
+          "coral_wall": 1,
+          "mino": 1,
+          "sea_urchin": 1
+        },
+        "ai_room1_1": {
+          "shark": 5,
+          "trident": 8,
+          "coral_wall": 3,
+          "jellyfish": 6,
+          "orca": 4,
+          "barracuda": 4,
+          "narwhal": 3,
+          "turtle": 2,
+          "crab": 1,
+          "sea_urchin": 2,
+          "mino": 3
+        },
+        "ai_room1_2": {
+          "trident": 2,
+          "orca": 7,
+          "turtle": 2,
+          "shark": 4,
+          "narwhal": 3,
+          "jellyfish": 2,
+          "coral_wall": 4,
+          "barracuda": 7,
+          "mino": 5,
+          "crab": 3
+        }
+      }
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254076872,
+      "duration": 10.573,
+      "winner": "ai_room1_2",
+      "players": 4,
+      "cardUsage": {
+        "ai_room1_0": {
+          "shark": 3,
+          "barracuda": 5,
+          "orca": 2,
+          "crab": 3,
+          "jellyfish": 3,
+          "trident": 3,
+          "coral_wall": 1,
+          "mino": 1,
+          "sea_urchin": 1
+        },
+        "ai_room1_1": {
+          "shark": 5,
+          "trident": 8,
+          "coral_wall": 3,
+          "jellyfish": 6,
+          "orca": 4,
+          "barracuda": 4,
+          "narwhal": 3,
+          "turtle": 2,
+          "crab": 1,
+          "sea_urchin": 2,
+          "mino": 3
+        },
+        "ai_room1_2": {
+          "trident": 2,
+          "orca": 7,
+          "turtle": 2,
+          "shark": 4,
+          "narwhal": 3,
+          "jellyfish": 2,
+          "coral_wall": 4,
+          "barracuda": 7,
+          "mino": 5,
+          "crab": 3
+        }
+      }
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254227129,
+      "duration": 25.767,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "MlKPk4c-5ABUKrwpAABd": {
+          "trident": 1,
+          "mino": 2,
+          "shark": 1,
+          "coral_wall": 2
+        },
+        "ai_room1_0": {
+          "barracuda": 2,
+          "mino": 3,
+          "trident": 2,
+          "sea_urchin": 1,
+          "coral_wall": 2,
+          "orca": 2,
+          "jellyfish": 1,
+          "narwhal": 1
+        }
+      }
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254227133,
+      "duration": 25.771,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "MlKPk4c-5ABUKrwpAABd": {
+          "trident": 1,
+          "mino": 2,
+          "shark": 1,
+          "coral_wall": 2
+        },
+        "ai_room1_0": {
+          "barracuda": 2,
+          "mino": 3,
+          "trident": 2,
+          "sea_urchin": 1,
+          "coral_wall": 2,
+          "orca": 2,
+          "jellyfish": 1,
+          "narwhal": 1
+        }
+      }
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254326257,
+      "duration": 55.83,
+      "winner": "ai_room1_1",
+      "players": 3,
+      "cardUsage": {
+        "ai_room1_0": {
+          "trident": 7,
+          "coral_wall": 3,
+          "mino": 3,
+          "turtle": 3,
+          "crab": 7,
+          "shark": 5,
+          "narwhal": 2,
+          "jellyfish": 5,
+          "sea_urchin": 2,
+          "orca": 4
+        },
+        "ai_room1_1": {
+          "narwhal": 3,
+          "barracuda": 21,
+          "mino": 4,
+          "jellyfish": 12,
+          "shark": 14,
+          "trident": 9,
+          "coral_wall": 4,
+          "orca": 8,
+          "turtle": 2,
+          "turret": 2,
+          "sea_urchin": 2,
+          "crab": 1
+        },
+        "ai_room1_2": {
+          "jellyfish": 7,
+          "trident": 17,
+          "barracuda": 12,
+          "shark": 14,
+          "sea_urchin": 3,
+          "orca": 5,
+          "narwhal": 3,
+          "mino": 9,
+          "crab": 3,
+          "coral_wall": 4,
+          "turtle": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": false
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254326262,
+      "duration": 55.835,
+      "winner": "ai_room1_1",
+      "players": 3,
+      "cardUsage": {
+        "ai_room1_0": {
+          "trident": 7,
+          "coral_wall": 3,
+          "mino": 3,
+          "turtle": 3,
+          "crab": 7,
+          "shark": 5,
+          "narwhal": 2,
+          "jellyfish": 5,
+          "sea_urchin": 2,
+          "orca": 4
+        },
+        "ai_room1_1": {
+          "narwhal": 3,
+          "barracuda": 21,
+          "mino": 4,
+          "jellyfish": 12,
+          "shark": 14,
+          "trident": 9,
+          "coral_wall": 4,
+          "orca": 8,
+          "turtle": 2,
+          "turret": 2,
+          "sea_urchin": 2,
+          "crab": 1
+        },
+        "ai_room1_2": {
+          "jellyfish": 7,
+          "trident": 17,
+          "barracuda": 12,
+          "shark": 14,
+          "sea_urchin": 3,
+          "orca": 5,
+          "narwhal": 3,
+          "mino": 9,
+          "crab": 3,
+          "coral_wall": 4,
+          "turtle": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": false
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254546019,
+      "duration": 8.461,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "oziDwgls7qOAuNOBAABV": {
+          "shark": 1
+        },
+        "ai_room1_0": {
+          "shark": 3,
+          "narwhal": 2,
+          "jellyfish": 1,
+          "orca": 2,
+          "barracuda": 6,
+          "trident": 1,
+          "crab": 3
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254546022,
+      "duration": 8.464,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "oziDwgls7qOAuNOBAABV": {
+          "shark": 1
+        },
+        "ai_room1_0": {
+          "shark": 3,
+          "narwhal": 2,
+          "jellyfish": 1,
+          "orca": 2,
+          "barracuda": 6,
+          "trident": 1,
+          "crab": 3
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254658531,
+      "duration": 13.979,
+      "winner": "ai_room1_1",
+      "players": 4,
+      "cardUsage": {
+        "gDisTraaEXAQWKMVAAAr": {
+          "orca": 1
+        },
+        "ai_room1_0": {
+          "shark": 3,
+          "barracuda": 4,
+          "orca": 1,
+          "crab": 3,
+          "trident": 3,
+          "coral_wall": 1,
+          "mino": 1,
+          "jellyfish": 1,
+          "turtle": 1,
+          "narwhal": 1,
+          "sea_urchin": 1
+        },
+        "ai_room1_1": {
+          "jellyfish": 4,
+          "crab": 1,
+          "mino": 6,
+          "trident": 8,
+          "coral_wall": 1,
+          "narwhal": 2,
+          "shark": 2,
+          "barracuda": 3,
+          "turtle": 2,
+          "sea_urchin": 1,
+          "orca": 3
+        },
+        "ai_room1_2": {
+          "orca": 4,
+          "jellyfish": 7,
+          "sea_urchin": 1,
+          "trident": 2,
+          "shark": 9,
+          "mino": 3,
+          "turtle": 3,
+          "narwhal": 2,
+          "coral_wall": 2,
+          "crab": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254658534,
+      "duration": 13.983,
+      "winner": "ai_room1_1",
+      "players": 4,
+      "cardUsage": {
+        "gDisTraaEXAQWKMVAAAr": {
+          "orca": 1
+        },
+        "ai_room1_0": {
+          "shark": 3,
+          "barracuda": 4,
+          "orca": 1,
+          "crab": 3,
+          "trident": 3,
+          "coral_wall": 1,
+          "mino": 1,
+          "jellyfish": 1,
+          "turtle": 1,
+          "narwhal": 1,
+          "sea_urchin": 1
+        },
+        "ai_room1_1": {
+          "jellyfish": 4,
+          "crab": 1,
+          "mino": 6,
+          "trident": 8,
+          "coral_wall": 1,
+          "narwhal": 2,
+          "shark": 2,
+          "barracuda": 3,
+          "turtle": 2,
+          "sea_urchin": 1,
+          "orca": 3
+        },
+        "ai_room1_2": {
+          "orca": 4,
+          "jellyfish": 7,
+          "sea_urchin": 1,
+          "trident": 2,
+          "shark": 9,
+          "mino": 3,
+          "turtle": 3,
+          "narwhal": 2,
+          "coral_wall": 2,
+          "crab": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254826828,
+      "duration": 42.679,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "X2SjUPLHdiavwjM-AAA_": {
+          "trident": 2,
+          "mino": 1,
+          "orca": 1,
+          "turtle": 1,
+          "narwhal": 1,
+          "shark": 2,
+          "sea_urchin": 1
+        },
+        "ai_room1_0": {
+          "orca": 2,
+          "narwhal": 2,
+          "trident": 6,
+          "mino": 3,
+          "crab": 1,
+          "shark": 4,
+          "jellyfish": 8,
+          "barracuda": 3,
+          "coral_wall": 3,
+          "sea_urchin": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254826833,
+      "duration": 42.683,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "X2SjUPLHdiavwjM-AAA_": {
+          "trident": 2,
+          "mino": 1,
+          "orca": 1,
+          "turtle": 1,
+          "narwhal": 1,
+          "shark": 2,
+          "sea_urchin": 1
+        },
+        "ai_room1_0": {
+          "orca": 2,
+          "narwhal": 2,
+          "trident": 6,
+          "mino": 3,
+          "crab": 1,
+          "shark": 4,
+          "jellyfish": 8,
+          "barracuda": 3,
+          "coral_wall": 3,
+          "sea_urchin": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254921744,
+      "duration": 6.546,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "7v2tBaK7oBDwhxE5AABD": {
+          "trident": 1
+        },
+        "ai_room1_0": {
+          "trident": 3,
+          "narwhal": 1,
+          "shark": 3,
+          "barracuda": 1,
+          "jellyfish": 2,
+          "orca": 1,
+          "mino": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
+    },
+    {
+      "gameId": "room1",
+      "timestamp": 1765254921749,
+      "duration": 6.551,
+      "winner": "ai_room1_0",
+      "players": 2,
+      "cardUsage": {
+        "7v2tBaK7oBDwhxE5AABD": {
+          "trident": 1
+        },
+        "ai_room1_0": {
+          "trident": 3,
+          "narwhal": 1,
+          "shark": 3,
+          "barracuda": 1,
+          "jellyfish": 2,
+          "orca": 1,
+          "mino": 1
+        }
+      },
+      "aiWon": true,
+      "vsHuman": true
     }
   ]
 }

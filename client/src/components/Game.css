@@ -143,6 +143,17 @@
     transform: translateY(-1px);
 }
 
+.ai-stats-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(156, 39, 176, 0.6);
+    background: linear-gradient(135deg, #ab47bc, #7e57c2) !important;
+}
+
+.ai-stats-button:active {
+    transform: translateY(-1px);
+}
+
+
 .game-container {
     position: relative;
     width: 100vw;

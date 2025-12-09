@@ -14,6 +14,7 @@ import seaUrchinIcon from '../assets/sea_urchin.svg';
 import minoIcon from '../assets/mino.svg';
 import leviathanIcon from '../assets/leviathan.svg';
 import mountainXWithBridgesSvg from '../assets/mountain_x_with_bridges.svg';
+import bridgeSvg from '../assets/bridge.svg';
 
 const CARD_ICONS = {
     shark: sharkIcon,
@@ -42,6 +43,33 @@ const GRID_SIZE = 40;
 const CELL_SIZE = 50;
 const MAP_SIZE = GRID_SIZE * CELL_SIZE; // 1000x1000
 
+// Helper function to darken a hex color
+const darkenColor = (color, factor) => {
+    // Validate hex color
+    let hex = color.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+
+    // Convert to RGB
+    let r = parseInt(hex.substring(0, 2), 16);
+    let g = parseInt(hex.substring(2, 4), 16);
+    let b = parseInt(hex.substring(4, 6), 16);
+
+    // Darken
+    r = Math.floor(r * (1 - factor));
+    g = Math.floor(g * (1 - factor));
+    b = Math.floor(b * (1 - factor));
+
+    // Clamp
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+
+    // Convert back to hex
+    return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+};
+
 const Game = () => {
     const canvasRef = useRef(null);
     const [gameState, setGameState] = useState(null);
@@ -57,6 +85,7 @@ const Game = () => {
 
     const troopIconImagesRef = useRef({});
     const mountainXRef = useRef(null);
+    const bridgeImageRef = useRef(null);
     const troopAnimationsRef = useRef({}); // Store animation data for each troop
     const [hoveredTroop, setHoveredTroop] = useState(null);
     const [placementMode, setPlacementMode] = useState(false);
@@ -75,12 +104,18 @@ const Game = () => {
     const [hoveredCard, setHoveredCard] = useState(null);
     const [hoveredCardPosition, setHoveredCardPosition] = useState({ x: 0, y: 0 });
     const [projectiles, setProjectiles] = useState([]);
+    const [showAIStats, setShowAIStats] = useState(false);
+    const [aiStatsData, setAiStatsData] = useState(null);
 
-    // Preload terrain SVG image
+    // Preload terrain SVG image(s)
     useEffect(() => {
         const mxImg = new Image();
         mxImg.src = mountainXWithBridgesSvg;
         mountainXRef.current = mxImg;
+
+        const bridgeImg = new Image();
+        bridgeImg.src = bridgeSvg;
+        bridgeImageRef.current = bridgeImg;
     }, []);
 
     // Toast notification system
@@ -88,7 +123,7 @@ const Game = () => {
         const id = Date.now() + Math.random();
         const toast = { id, message, type };
         setToasts(prev => [...prev, toast]);
-        
+
         // Auto-remove after 4 seconds
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
@@ -110,36 +145,36 @@ const Game = () => {
             setConnectionStatus('connected');
             reconnectAttemptsRef.current = 0;
             showToast('Connected to server', 'success');
-            
+
             // Clear any pending reconnection
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
                 reconnectTimeoutRef.current = null;
             }
         });
-        
+
         socket.on('disconnect', (reason) => {
             console.log('Disconnected from server:', reason);
             setConnectionStatus('disconnected');
             showToast('Disconnected from server', 'error');
-            
+
             // Attempt reconnection with exponential backoff
             if (reason === 'io server disconnect') {
                 // Server disconnected, don't auto-reconnect
                 return;
             }
-            
+
             reconnectAttemptsRef.current++;
             const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current - 1), 10000);
-            
+
             setConnectionStatus('reconnecting');
             showToast(`Reconnecting... (Attempt ${reconnectAttemptsRef.current})`, 'warning');
-            
+
             reconnectTimeoutRef.current = setTimeout(() => {
                 socket.connect();
             }, delay);
         });
-        
+
         socket.on('connect_error', (error) => {
             console.error('Connection error:', error);
             setConnectionStatus('disconnected');
@@ -149,6 +184,9 @@ const Game = () => {
         });
 
         socket.on('gameState', (state) => {
+            console.log('Received gameState:', state);
+            console.log('Current socket ID:', socket.id);
+
             // Update troop animations when positions change
             if (state.troops) {
                 state.troops.forEach(troop => {
@@ -184,8 +222,15 @@ const Game = () => {
             }
 
             setGameState(state);
+
             if (socket.id && state.players[socket.id]) {
+                console.log('Found my player in gameState');
                 setMyPlayer(state.players[socket.id]);
+            } else {
+                console.warn('My player not found in gameState!', {
+                    socketId: socket.id,
+                    players: Object.keys(state.players)
+                });
             }
         });
 
@@ -241,13 +286,17 @@ const Game = () => {
                         color: '#FF6B35' // Turret color
                     };
                     setProjectiles(prev => [...prev, projectile]);
-                    
+
                     // Remove projectile after animation
                     setTimeout(() => {
                         setProjectiles(prev => prev.filter(p => p.id !== projectile.id));
                     }, projectile.duration);
                 }
             });
+        });
+
+        socket.on('aiStats', (stats) => {
+            setAiStatsData(stats);
         });
 
         return () => {
@@ -259,7 +308,8 @@ const Game = () => {
             socket.off('gameOver');
             socket.off('error');
             socket.off('roomReset');
-            
+            socket.off('aiStats');
+
             // Cleanup reconnection timeout
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
@@ -330,7 +380,7 @@ const Game = () => {
             ctx.stroke();
         }
 
-        // Draw unified X-shaped Mountain Range with 4 Bridges (single vector)
+        // Draw unified X-shaped Mountain Range with Bridges (single vector)
         if (mountainXRef.current && mountainXRef.current.complete) {
             ctx.drawImage(mountainXRef.current, 0, 0, MAP_SIZE, MAP_SIZE);
         } else {
@@ -342,10 +392,12 @@ const Game = () => {
                 });
             }
 
-            // Draw bridge markers
+            // Draw bridge markers for non-central bridges
             ctx.fillStyle = '#8B4513';
             if (gameState.terrain && gameState.terrain.bridges) {
                 gameState.terrain.bridges.forEach(bridge => {
+                    // Skip central bridges here; they are rendered explicitly below
+                    if (bridge.name && bridge.name.startsWith('center')) return;
                     ctx.fillRect(
                         bridge.x * CELL_SIZE - CELL_SIZE,
                         bridge.y * CELL_SIZE - CELL_SIZE,
@@ -355,6 +407,47 @@ const Game = () => {
                 });
             }
         }
+
+        // Draw two perpendicular central bridges at the middle of the map so they
+        // clearly cross the X-shaped trench from side to side.
+        // This is rendered regardless of whether the mountainX asset is loaded,
+        // so the central chokepoint is always visually obvious.
+        const centerPixelX = MAP_SIZE / 2;
+        const centerPixelY = MAP_SIZE / 2;
+        // Larger bridges so they clearly span across the trench arms:
+        // ~8 cells long and 2 cells wide.
+        const bridgeLength = CELL_SIZE * 8;
+        const bridgeWidth = CELL_SIZE * 2;
+
+        const drawCentralBridge = (angleDeg, fallbackColor) => {
+            ctx.save();
+            ctx.translate(centerPixelX, centerPixelY);
+            ctx.rotate((angleDeg * Math.PI) / 180);
+
+            if (bridgeImageRef.current && bridgeImageRef.current.complete) {
+                ctx.drawImage(
+                    bridgeImageRef.current,
+                    -bridgeLength / 2,
+                    -bridgeWidth / 2,
+                    bridgeLength,
+                    bridgeWidth
+                );
+            } else {
+                ctx.fillStyle = fallbackColor;
+                ctx.fillRect(
+                    -bridgeLength / 2,
+                    -bridgeWidth / 2,
+                    bridgeLength,
+                    bridgeWidth
+                );
+            }
+
+            ctx.restore();
+        };
+
+        // One horizontal and one vertical bridge, both perpendicular to the X-trench
+        drawCentralBridge(0, '#8B4513');   // Left ↔ Right
+        drawCentralBridge(90, '#A0522D');  // Top ↔ Bottom
 
         // Draw Map Boundaries
         ctx.strokeStyle = '#006994';
@@ -413,67 +506,104 @@ const Game = () => {
             const castleX = p.x;
             const castleY = p.y;
             const castleSize = 70;
-            
+
             ctx.save();
-            
+
             // Castle base (main structure) - use player color
             ctx.fillStyle = p.color;
             ctx.fillRect(castleX - castleSize, castleY - castleSize * 0.3, castleSize * 2, castleSize * 1.2);
-            
+
             // Castle walls with darker shade for depth
             const darkerColor = darkenColor(p.color, 0.2);
             ctx.fillStyle = darkerColor;
-            
+
             // Left wall
             ctx.fillRect(castleX - castleSize, castleY - castleSize * 0.3, castleSize * 0.3, castleSize * 1.2);
             // Right wall
             ctx.fillRect(castleX + castleSize * 0.7, castleY - castleSize * 0.3, castleSize * 0.3, castleSize * 1.2);
-            
+
             // Castle battlements (top crenellations)
             const battlementWidth = castleSize * 0.4;
             const battlementHeight = castleSize * 0.25;
             const numBattlements = 5;
             const spacing = (castleSize * 2) / numBattlements;
-            
+
             ctx.fillStyle = p.color;
             for (let i = 0; i < numBattlements; i++) {
                 const x = castleX - castleSize + i * spacing + spacing * 0.1;
                 ctx.fillRect(x, castleY - castleSize * 0.3 - battlementHeight, battlementWidth, battlementHeight);
             }
-            
+
             // Central tower (taller)
             const towerWidth = castleSize * 0.6;
             const towerHeight = castleSize * 0.8;
             ctx.fillStyle = p.color;
             ctx.fillRect(castleX - towerWidth / 2, castleY - castleSize * 0.3 - towerHeight, towerWidth, towerHeight);
-            
+
             // Tower battlements
             const towerBattlementWidth = towerWidth * 0.3;
             const towerBattlementHeight = castleSize * 0.2;
             ctx.fillRect(castleX - towerWidth / 2, castleY - castleSize * 0.3 - towerHeight - towerBattlementHeight, towerBattlementWidth, towerBattlementHeight);
             ctx.fillRect(castleX + towerWidth / 2 - towerBattlementWidth, castleY - castleSize * 0.3 - towerHeight - towerBattlementHeight, towerBattlementWidth, towerBattlementHeight);
-            
+
             // Tower window
             ctx.fillStyle = 'rgba(255, 255, 200, 0.6)';
             ctx.fillRect(castleX - towerWidth * 0.15, castleY - castleSize * 0.5, towerWidth * 0.3, towerWidth * 0.3);
             ctx.strokeStyle = darkerColor;
             ctx.lineWidth = 2;
             ctx.strokeRect(castleX - towerWidth * 0.15, castleY - castleSize * 0.5, towerWidth * 0.3, towerWidth * 0.3);
-            
+
             // Castle outline/border
             ctx.strokeStyle = darkerColor;
             ctx.lineWidth = 3;
             ctx.strokeRect(castleX - castleSize, castleY - castleSize * 0.3, castleSize * 2, castleSize * 1.2);
             ctx.strokeRect(castleX - towerWidth / 2, castleY - castleSize * 0.3 - towerHeight, towerWidth, towerHeight);
-            
+
             ctx.restore();
 
-            // Base HP Bar
+            // Base HP Bar + Shield Icon + Text (HP / Max)
+            const maxBaseHp = 1000;
+            const clampedHp = Math.max(0, Math.min(maxBaseHp, p.baseHp || 0));
+            const hpRatio = clampedHp / maxBaseHp;
+
+            // Background bar
             ctx.fillStyle = 'red';
             ctx.fillRect(p.x - 50, p.y - 95, 100, 14);
+            // Current HP segment
             ctx.fillStyle = 'green';
-            ctx.fillRect(p.x - 50, p.y - 95, 100 * (p.baseHp / 1000), 14);
+            ctx.fillRect(p.x - 50, p.y - 95, 100 * hpRatio, 14);
 
+            // Shield icon to the left of the bar
+            const shieldWidth = 16;
+            const shieldHeight = 20;
+            const shieldX = p.x - 70;
+            const shieldY = p.y - 100;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(shieldX + shieldWidth / 2, shieldY); // top
+            ctx.lineTo(shieldX + shieldWidth, shieldY + shieldHeight * 0.3);
+            ctx.lineTo(shieldX + shieldWidth * 0.8, shieldY + shieldHeight);
+            ctx.lineTo(shieldX + shieldWidth * 0.2, shieldY + shieldHeight);
+            ctx.lineTo(shieldX, shieldY + shieldHeight * 0.3);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // HP text (current / max) next to the bar
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(
+                `${Math.ceil(clampedHp)}/${maxBaseHp}`,
+                p.x - 45,
+                p.y - 82
+            );
+
+            // Player name below the tower
             ctx.fillStyle = 'white';
             ctx.font = 'bold 26px Arial';
             ctx.textAlign = 'center';
@@ -616,7 +746,7 @@ const Game = () => {
                 ctx.beginPath();
                 ctx.arc(displayX, displayY, radius, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // Draw turret barrel
                 ctx.strokeStyle = '#8B4513';
                 ctx.lineWidth = 6;
@@ -627,7 +757,7 @@ const Game = () => {
                 const angle = Math.atan2(0, -1); // Default upward
                 ctx.lineTo(displayX + Math.cos(angle) * (radius + 10), displayY + Math.sin(angle) * (radius + 10));
                 ctx.stroke();
-                
+
                 // Draw turret base
                 ctx.fillStyle = '#4A4A4A';
                 ctx.beginPath();
@@ -745,23 +875,23 @@ const Game = () => {
         projectiles.forEach(projectile => {
             const elapsed = now - projectile.startTime;
             const progress = Math.min(elapsed / projectile.duration, 1);
-            
+
             // Calculate current position
             const currentX = projectile.fromX + (projectile.toX - projectile.fromX) * progress;
             const currentY = projectile.fromY + (projectile.toY - projectile.fromY) * progress;
-            
+
             // Draw projectile (animated pellet)
             ctx.save();
             ctx.globalAlpha = 1 - progress * 0.3; // Fade slightly as it travels
             ctx.fillStyle = projectile.color;
             ctx.shadowColor = projectile.color;
             ctx.shadowBlur = 10;
-            
+
             // Draw pellet with trail effect
             ctx.beginPath();
             ctx.arc(currentX, currentY, 6, 0, Math.PI * 2);
             ctx.fill();
-            
+
             // Draw trail
             if (progress > 0.1) {
                 const trailX = projectile.fromX + (projectile.toX - projectile.fromX) * (progress - 0.1);
@@ -771,7 +901,7 @@ const Game = () => {
                 ctx.arc(trailX, trailY, 4, 0, Math.PI * 2);
                 ctx.fill();
             }
-            
+
             ctx.restore();
         });
 
@@ -812,7 +942,7 @@ const Game = () => {
                 ctx.beginPath();
                 ctx.arc(displayX, displayY, radius, 0, Math.PI * 2);
                 ctx.fill();
-                
+
                 // Draw turret barrel
                 ctx.strokeStyle = '#8B4513';
                 ctx.lineWidth = 6;
@@ -822,7 +952,7 @@ const Game = () => {
                 const angle = Math.atan2(0, -1);
                 ctx.lineTo(displayX + Math.cos(angle) * (radius + 10), displayY + Math.sin(angle) * (radius + 10));
                 ctx.stroke();
-                
+
                 // Draw turret base
                 ctx.fillStyle = '#4A4A4A';
                 ctx.beginPath();
@@ -868,38 +998,38 @@ const Game = () => {
 
     const handleJoin = () => {
         const trimmedUsername = username.trim();
-        
+
         // Validate username
         if (!trimmedUsername) {
             showToast('Please enter a username', 'error');
             return;
         }
-        
+
         if (trimmedUsername.length > 20) {
             showToast('Username must be 20 characters or less', 'error');
             return;
         }
-        
+
         if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedUsername)) {
             showToast('Username can only contain letters, numbers, spaces, hyphens, and underscores', 'error');
             return;
         }
-        
+
         // Validate game ID
         if (!gameId || gameId.trim().length === 0) {
             showToast('Please select a room', 'error');
             return;
         }
-        
+
         // Check connection status
         if (connectionStatus !== 'connected') {
             showToast('Not connected to server. Please wait...', 'error');
             return;
         }
-        
+
         try {
             socket.emit('joinGame', { gameId, username: trimmedUsername, movementMode });
-        setJoined(true);
+            setJoined(true);
             setShowLobby(false);
             showToast(`Joined ${gameId}`, 'success');
         } catch (error) {
@@ -913,9 +1043,9 @@ const Game = () => {
             showToast('Not connected to server. Please wait...', 'error');
             return;
         }
-        
+
         try {
-        socket.emit('forceStart', gameId);
+            socket.emit('forceStart', gameId);
             showToast('Starting game...', 'info');
         } catch (error) {
             console.error('Error starting game:', error);
@@ -1002,8 +1132,8 @@ const Game = () => {
 
             // Check if valid placement in player's quadrant
             if (isInPlayerQuadrant(gridX, gridY, myPlayer)) {
-        socket.emit('deployCard', {
-            gameId,
+                socket.emit('deployCard', {
+                    gameId,
                     cardId: selectedCard.id,
                     gridX,
                     gridY
@@ -1208,8 +1338,8 @@ const Game = () => {
 
                 <div className="lobby-section">
                     <label>Username</label>
-                <input
-                    type="text"
+                    <input
+                        type="text"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="Enter your username"
@@ -1255,7 +1385,501 @@ const Game = () => {
                     </div>
                 </div>
 
-                <button className="join-button" onClick={handleJoin}>Join Game</button>
+                <div className="lobby-buttons" style={{ display: 'flex', gap: '20px', marginTop: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button className="join-button" onClick={handleJoin}>Join Game</button>
+                    <button
+                        className="ai-stats-button"
+                        onClick={() => {
+                            socket.emit('getAIStats');
+                            setShowAIStats(true);
+                        }}
+                        style={{
+                            padding: '18px 30px',
+                            background: 'linear-gradient(135deg, #9c27b0, #673ab7)',
+                            border: 'none',
+                            borderRadius: '12px',
+                            color: 'white',
+                            fontSize: '1.2rem',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            textTransform: 'uppercase',
+                            letterSpacing: '2px',
+                            boxShadow: '0 5px 20px rgba(156, 39, 176, 0.4)'
+                        }}
+                    >
+                        🤖 AI Stats
+                    </button>
+                </div>
+
+                {showAIStats && aiStatsData && (
+                    <div className="ai-stats-modal" style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        background: 'rgba(0, 0, 0, 0.9)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        overflowY: 'auto'
+                    }}>
+                        <div className="stats-content" style={{
+                            background: '#001e3c',
+                            border: '2px solid #00bfff',
+                            borderRadius: '20px',
+                            padding: '40px',
+                            width: '90%',
+                            maxWidth: '1000px',
+                            maxHeight: '90vh',
+                            overflowY: 'auto',
+                            color: 'white',
+                            position: 'relative'
+                        }}>
+                            <button
+                                onClick={() => setShowAIStats(false)}
+                                style={{
+                                    position: 'absolute',
+                                    top: '20px',
+                                    right: '20px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontSize: '24px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                ✕
+                            </button>
+
+                            <h2 style={{ textAlign: 'center', color: '#00bfff', fontSize: '2.5rem', marginBottom: '30px' }}>
+                                🤖 AI Performance Statistics
+                            </h2>
+
+                            <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+                                <div className="stat-card" style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '1.2rem', color: '#aaa' }}>Total Games</div>
+                                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>{aiStatsData.totalGames}</div>
+                                </div>
+                                <div className="stat-card" style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '1.2rem', color: '#aaa' }}>Wins</div>
+                                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#4CAF50' }}>{aiStatsData.wins}</div>
+                                </div>
+                                <div className="stat-card" style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '1.2rem', color: '#aaa' }}>Losses</div>
+                                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#F44336' }}>{aiStatsData.losses}</div>
+                                </div>
+                                <div className="stat-card" style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
+                                    <div style={{ fontSize: '1.2rem', color: '#aaa' }}>Win Rate</div>
+                                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#FFC107' }}>
+                                        {aiStatsData.totalGames > 0 ? ((aiStatsData.wins / aiStatsData.totalGames) * 100).toFixed(1) : 0}%
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* AI vs Humans Stats */}
+                            {aiStatsData.vsHumans && aiStatsData.vsHumans.games > 0 && (
+                                <div style={{
+                                    background: 'rgba(0, 191, 255, 0.1)',
+                                    border: '2px solid #00bfff',
+                                    borderRadius: '15px',
+                                    padding: '20px',
+                                    marginBottom: '40px'
+                                }}>
+                                    <h3 style={{ color: '#00bfff', marginBottom: '20px', textAlign: 'center' }}>
+                                        👤 Performance vs Humans
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px' }}>
+                                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1rem', color: '#aaa' }}>Games vs Humans</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{aiStatsData.vsHumans.games}</div>
+                                        </div>
+                                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1rem', color: '#aaa' }}>Wins</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#4CAF50' }}>{aiStatsData.vsHumans.wins}</div>
+                                        </div>
+                                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1rem', color: '#aaa' }}>Losses</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#F44336' }}>{aiStatsData.vsHumans.losses}</div>
+                                        </div>
+                                        <div style={{ background: 'rgba(255,255,255,0.1)', padding: '15px', borderRadius: '10px', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '1rem', color: '#aaa' }}>Win Rate</div>
+                                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FFC107' }}>
+                                                {((aiStatsData.vsHumans.wins / aiStatsData.vsHumans.games) * 100).toFixed(1)}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <h3 style={{ color: '#00bfff', borderBottom: '1px solid #00bfff', paddingBottom: '10px', marginBottom: '20px' }}>
+                                📈 Win/Loss Ratio vs Games Played (vs Humans)
+                            </h3>
+
+                            <div className="chart-container" style={{
+                                height: '400px',
+                                background: 'rgba(0,0,0,0.3)',
+                                borderRadius: '10px',
+                                padding: '20px',
+                                marginBottom: '40px',
+                                position: 'relative'
+                            }}>
+                                {(() => {
+                                    // Filter for games against humans only
+                                    const history = (aiStatsData.gameHistory || [])
+                                        .filter(game => game.vsHuman);
+
+                                    if (history.length === 0) {
+                                        return (
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%',
+                                                color: '#aaa',
+                                                fontSize: '1.2rem'
+                                            }}>
+                                                No games against humans yet. Play some games to see statistics!
+                                            </div>
+                                        );
+                                    }
+
+                                    // Calculate win/loss ratio at each game
+                                    let wins = 0;
+                                    let losses = 0;
+                                    const dataPoints = history.map((game, i) => {
+                                        if (game.aiWon) {
+                                            wins++;
+                                        } else {
+                                            losses++;
+                                        }
+                                        const gamesPlayed = i + 1;
+                                        const ratio = losses === 0 ? wins : wins / losses;
+                                        const winRate = (wins / gamesPlayed) * 100;
+                                        return {
+                                            gamesPlayed,
+                                            ratio,
+                                            wins,
+                                            losses,
+                                            winRate
+                                        };
+                                    });
+
+                                    const maxGames = dataPoints[dataPoints.length - 1].gamesPlayed;
+                                    const maxRatio = Math.max(...dataPoints.map(p => p.ratio), 2); // At least 2 for scale
+                                    const chartHeight = 300;
+                                    const chartWidth = 100; // percentage
+
+                                    return (
+                                        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                            {/* Y-axis labels (Win/Loss Ratio) */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                left: 0,
+                                                top: 0,
+                                                bottom: 60,
+                                                width: '50px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                justifyContent: 'space-between',
+                                                fontSize: '0.8rem',
+                                                color: '#aaa',
+                                                paddingRight: '5px',
+                                                textAlign: 'right'
+                                            }}>
+                                                <div>{maxRatio.toFixed(1)}</div>
+                                                <div>{(maxRatio * 0.75).toFixed(1)}</div>
+                                                <div>{(maxRatio * 0.5).toFixed(1)}</div>
+                                                <div>{(maxRatio * 0.25).toFixed(1)}</div>
+                                                <div>0.0</div>
+                                            </div>
+
+                                            {/* Y-axis label */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                left: '-5px',
+                                                top: '50%',
+                                                transform: 'rotate(-90deg) translateX(-50%)',
+                                                transformOrigin: 'left center',
+                                                fontSize: '0.9rem',
+                                                color: '#00bfff',
+                                                fontWeight: 'bold',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                Win/Loss Ratio
+                                            </div>
+
+                                            {/* Chart area */}
+                                            <div style={{ marginLeft: '60px', marginRight: '20px', height: '100%', position: 'relative' }}>
+                                                {/* Grid lines */}
+                                                {[0, 0.25, 0.5, 0.75, 1].map(fraction => (
+                                                    <div key={fraction} style={{
+                                                        position: 'absolute',
+                                                        left: 0,
+                                                        right: 0,
+                                                        bottom: `${60 + (fraction * chartHeight)}px`,
+                                                        height: '1px',
+                                                        background: fraction === 0.5 ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'
+                                                    }} />
+                                                ))}
+
+                                                {/* 1.0 ratio reference line (50% win rate) */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: `${60 + ((1.0 / maxRatio) * chartHeight)}px`,
+                                                    height: '2px',
+                                                    background: 'rgba(255, 193, 7, 0.5)',
+                                                    borderTop: '2px dashed rgba(255, 193, 7, 0.8)'
+                                                }}>
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        right: '5px',
+                                                        top: '-10px',
+                                                        fontSize: '0.75rem',
+                                                        color: '#FFC107',
+                                                        background: 'rgba(0,0,0,0.7)',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '3px'
+                                                    }}>
+                                                        1:1 (50%)
+                                                    </div>
+                                                </div>
+
+                                                {/* Line chart */}
+                                                <svg style={{
+                                                    position: 'absolute',
+                                                    bottom: '60px',
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: chartHeight,
+                                                    overflow: 'visible'
+                                                }}>
+                                                    {/* Area fill under the line */}
+                                                    <defs>
+                                                        <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                            <stop offset="0%" stopColor="#00bfff" stopOpacity="0.3" />
+                                                            <stop offset="100%" stopColor="#00bfff" stopOpacity="0.05" />
+                                                        </linearGradient>
+                                                    </defs>
+
+                                                    {/* Area polygon */}
+                                                    <polygon
+                                                        points={
+                                                            `0,${chartHeight} ` +
+                                                            dataPoints.map((point, i) => {
+                                                                const x = (point.gamesPlayed / maxGames) * 100;
+                                                                const y = chartHeight - ((point.ratio / maxRatio) * chartHeight);
+                                                                return `${x}%,${y}`;
+                                                            }).join(' ') +
+                                                            ` 100%,${chartHeight}`
+                                                        }
+                                                        fill="url(#areaGradient)"
+                                                    />
+
+                                                    {/* Main line */}
+                                                    <polyline
+                                                        points={dataPoints.map((point, i) => {
+                                                            const x = (point.gamesPlayed / maxGames) * 100;
+                                                            const y = chartHeight - ((point.ratio / maxRatio) * chartHeight);
+                                                            return `${x}%,${y}`;
+                                                        }).join(' ')}
+                                                        fill="none"
+                                                        stroke="#00bfff"
+                                                        strokeWidth="3"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                    />
+
+                                                    {/* Data points */}
+                                                    {dataPoints.map((point, i) => {
+                                                        const x = (point.gamesPlayed / maxGames) * 100;
+                                                        const y = chartHeight - ((point.ratio / maxRatio) * chartHeight);
+                                                        const isLabelPoint = i === dataPoints.length - 1 || point.gamesPlayed % 5 === 0;
+
+                                                        return (
+                                                            <g key={i}>
+                                                                <circle
+                                                                    cx={`${x}%`}
+                                                                    cy={y}
+                                                                    r={isLabelPoint ? "5" : "3"}
+                                                                    fill={point.ratio >= 1 ? "#4CAF50" : "#F44336"}
+                                                                    stroke="#001e3c"
+                                                                    strokeWidth="2"
+                                                                >
+                                                                    <title>
+                                                                        Game {point.gamesPlayed}: {point.wins}W-{point.losses}L
+                                                                        {'\n'}Ratio: {point.ratio.toFixed(2)}
+                                                                        {'\n'}Win Rate: {point.winRate.toFixed(1)}%
+                                                                    </title>
+                                                                </circle>
+                                                                {isLabelPoint && (
+                                                                    <text
+                                                                        x={`${x}%`}
+                                                                        y={y - 15}
+                                                                        textAnchor="middle"
+                                                                        fill="#00bfff"
+                                                                        fontSize="11"
+                                                                        fontWeight="bold"
+                                                                    >
+                                                                        {point.ratio.toFixed(1)}
+                                                                    </text>
+                                                                )}
+                                                            </g>
+                                                        );
+                                                    })}
+                                                </svg>
+
+                                                {/* X-axis labels */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: '35px',
+                                                    left: 0,
+                                                    right: 0,
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    fontSize: '0.8rem',
+                                                    color: '#aaa'
+                                                }}>
+                                                    {[0, Math.floor(maxGames * 0.25), Math.floor(maxGames * 0.5), Math.floor(maxGames * 0.75), maxGames].map((games, i) => (
+                                                        <div key={i}>{games}</div>
+                                                    ))}
+                                                </div>
+
+                                                {/* X-axis label */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: '10px',
+                                                    left: 0,
+                                                    right: 0,
+                                                    textAlign: 'center',
+                                                    fontSize: '0.9rem',
+                                                    color: '#00bfff',
+                                                    fontWeight: 'bold'
+                                                }}>
+                                                    Number of Games Played
+                                                </div>
+                                            </div>
+
+                                            {/* Legend */}
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '10px',
+                                                right: '30px',
+                                                background: 'rgba(0,0,0,0.7)',
+                                                padding: '12px',
+                                                borderRadius: '8px',
+                                                fontSize: '0.85rem',
+                                                border: '1px solid rgba(0,191,255,0.3)'
+                                            }}>
+                                                <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#00bfff' }}>
+                                                    Current Stats
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#4CAF50' }} />
+                                                    <span>Ratio ≥ 1.0 (Winning)</span>
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#F44336' }} />
+                                                    <span>Ratio &lt; 1.0 (Losing)</span>
+                                                </div>
+                                                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                                                    <div style={{ fontSize: '0.75rem', color: '#aaa' }}>Total Games: {maxGames}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                                                        Final Ratio: {dataPoints[dataPoints.length - 1].ratio.toFixed(2)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            <h3 style={{ color: '#00bfff', borderBottom: '1px solid #00bfff', paddingBottom: '10px', marginBottom: '20px' }}>
+                                📊 Strategy Performance
+                            </h3>
+
+                            <div className="chart-container" style={{
+                                height: '300px',
+                                background: 'rgba(0,0,0,0.3)',
+                                borderRadius: '10px',
+                                padding: '20px',
+                                marginBottom: '40px',
+                                display: 'flex',
+                                alignItems: 'flex-end',
+                                gap: '2px',
+                                position: 'relative'
+                            }}>
+                                {(() => {
+                                    // Strategy Stats Graph
+                                    const strategies = [
+                                        { name: 'Defensive', ...aiStatsData.strategyStats.defensivePlays },
+                                        { name: 'Offensive', ...aiStatsData.strategyStats.offensivePlays },
+                                        { name: 'Early Game', ...aiStatsData.strategyStats.earlyGame },
+                                        { name: 'Late Game', ...aiStatsData.strategyStats.lateGame }
+                                    ];
+
+                                    return (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end' }}>
+                                            {strategies.map((stat, i) => (
+                                                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '15%' }}>
+                                                    <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>{(stat.winRate * 100).toFixed(1)}%</div>
+                                                    <div style={{
+                                                        width: '100%',
+                                                        height: `${Math.max(5, stat.winRate * 200)}px`,
+                                                        background: stat.winRate > 0.5 ? '#4CAF50' : '#F44336',
+                                                        borderRadius: '5px 5px 0 0',
+                                                        transition: 'height 1s ease-out'
+                                                    }}></div>
+                                                    <div style={{ marginTop: '10px', fontSize: '0.9rem', textAlign: 'center' }}>{stat.name}</div>
+                                                    <div style={{ fontSize: '0.8rem', color: '#aaa' }}>({stat.count} plays)</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            <h3 style={{ color: '#00bfff', borderBottom: '1px solid #00bfff', paddingBottom: '10px', marginBottom: '20px' }}>
+                                🃏 Card Performance
+                            </h3>
+
+                            <div className="card-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+                                {Object.entries(aiStatsData.cardUsage)
+                                    .sort(([, a], [, b]) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))
+                                    .map(([cardId, stats]) => {
+                                        const total = stats.wins + stats.losses;
+                                        if (total === 0) return null;
+                                        const winRate = (stats.wins / total) * 100;
+                                        const card = Object.values(CARD_ICONS).find((_, i) => Object.keys(CARD_ICONS)[i] === cardId) ? cardId : cardId; // Just getting name
+
+                                        return (
+                                            <div key={cardId} style={{
+                                                background: 'rgba(255,255,255,0.05)',
+                                                padding: '15px',
+                                                borderRadius: '8px',
+                                                borderLeft: `4px solid ${winRate >= 50 ? '#4CAF50' : '#F44336'}`
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                                                    <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{cardId.replace('_', ' ')}</span>
+                                                    <span style={{ color: winRate >= 50 ? '#4CAF50' : '#F44336', fontWeight: 'bold' }}>{winRate.toFixed(1)}%</span>
+                                                </div>
+                                                <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                                                    <div style={{ width: `${winRate}%`, height: '100%', background: winRate >= 50 ? '#4CAF50' : '#F44336' }}></div>
+                                                </div>
+                                                <div style={{ fontSize: '0.8rem', color: '#aaa', marginTop: '5px' }}>
+                                                    {stats.played} plays | {stats.wins} wins
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -1280,11 +1904,11 @@ const Game = () => {
                 fontSize: '0.9rem',
                 fontWeight: 'bold',
                 pointerEvents: 'none',
-                background: connectionStatus === 'connected' 
-                    ? 'rgba(76, 175, 80, 0.9)' 
+                background: connectionStatus === 'connected'
+                    ? 'rgba(76, 175, 80, 0.9)'
                     : connectionStatus === 'reconnecting'
-                    ? 'rgba(255, 193, 7, 0.9)'
-                    : 'rgba(244, 67, 54, 0.9)',
+                        ? 'rgba(255, 193, 7, 0.9)'
+                        : 'rgba(244, 67, 54, 0.9)',
                 color: '#fff',
                 boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
                 display: 'flex',
@@ -1318,13 +1942,13 @@ const Game = () => {
                         style={{
                             padding: '12px 20px',
                             borderRadius: '8px',
-                            background: toast.type === 'error' 
-                                ? 'rgba(244, 67, 54, 0.95)' 
+                            background: toast.type === 'error'
+                                ? 'rgba(244, 67, 54, 0.95)'
                                 : toast.type === 'success'
-                                ? 'rgba(76, 175, 80, 0.95)'
-                                : toast.type === 'warning'
-                                ? 'rgba(255, 193, 7, 0.95)'
-                                : 'rgba(33, 150, 243, 0.95)',
+                                    ? 'rgba(76, 175, 80, 0.95)'
+                                    : toast.type === 'warning'
+                                        ? 'rgba(255, 193, 7, 0.95)'
+                                        : 'rgba(33, 150, 243, 0.95)',
                             color: '#fff',
                             fontSize: '0.9rem',
                             fontWeight: '500',
@@ -1448,13 +2072,13 @@ const Game = () => {
                         {Object.values(gameState.players).map(p => {
                             const winProb = gameState.aiWinProbabilities && gameState.aiWinProbabilities[p.id];
                             return (
-                            <div key={p.id} className="player-item" style={{ color: p.color }}>
+                                <div key={p.id} className="player-item" style={{ color: p.color }}>
                                     <div className="player-name">
                                         {p.username || `Player ${p.id.substr(0, 4)}`}
                                         {p.id === myPlayer.id && ' (YOU)'}
                                         {p.id === gameState.roomLeader && ' 👑'}
                                         {p.isAI && ' 🤖'}
-                            </div>
+                                    </div>
                                     {winProb && (
                                         <div className="ai-win-prob" style={{
                                             color: parseFloat(winProb.percentage) >= 50 ? '#4CAF50' : parseFloat(winProb.percentage) >= 30 ? '#FFC107' : '#F44336'
@@ -1546,8 +2170,8 @@ const Game = () => {
                                         >
                                             {num}
                                         </button>
-                        ))}
-                    </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1626,6 +2250,12 @@ const Game = () => {
                                             <span className="current-player">
                                                 {gameState.players[gameState.currentTurn]?.username || `Player ${gameState.currentTurn?.substr(0, 4)}`}'s Turn
                                             </span>
+                                            <div className="turn-timer" style={{
+                                                width: `${(gameState.turnTimeRemaining / 30) * 100}%`,
+                                                backgroundColor: '#ffaa00',
+                                                marginTop: '5px'
+                                            }}></div>
+                                            <span className="timer-text" style={{ fontSize: '1rem' }}>{Math.ceil(gameState.turnTimeRemaining || 0)}s</span>
                                         </div>
                                     )}
                                 </>
@@ -1661,17 +2291,17 @@ const Game = () => {
                                             const spacing = 10;
                                             let x = rect.left - tooltipWidth - spacing;
                                             let y = rect.top;
-                                            
+
                                             // If tooltip would go off left edge, position to the right
                                             if (x < 10) {
                                                 x = rect.right + spacing;
                                             }
-                                            
+
                                             // If tooltip would go off bottom, adjust upward
                                             if (y + 300 > window.innerHeight) {
                                                 y = window.innerHeight - 300;
                                             }
-                                            
+
                                             setHoveredCardPosition({ x, y });
                                         }
                                     }}
@@ -1700,7 +2330,7 @@ const Game = () => {
                                 </div>
                             );
                         })}
-                        <div 
+                        <div
                             className="card next-card"
                             onMouseEnter={(e) => {
                                 if (myPlayer.nextCard) {
@@ -1710,17 +2340,17 @@ const Game = () => {
                                     const spacing = 10;
                                     let x = rect.left - tooltipWidth - spacing;
                                     let y = rect.top;
-                                    
+
                                     // If tooltip would go off left edge, position to the right
                                     if (x < 10) {
                                         x = rect.right + spacing;
                                     }
-                                    
+
                                     // If tooltip would go off bottom, adjust upward
                                     if (y + 300 > window.innerHeight) {
                                         y = window.innerHeight - 300;
                                     }
-                                    
+
                                     setHoveredCardPosition({ x, y });
                                 }
                             }}
@@ -1744,7 +2374,7 @@ const Game = () => {
 
                     {/* Card Info Tooltip */}
                     {hoveredCard && (
-                        <div 
+                        <div
                             className="card-info-tooltip"
                             style={{
                                 position: 'fixed',

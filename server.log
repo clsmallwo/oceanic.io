@@ -1,24 +1,49 @@
-Loaded AI statistics: 168 games, 66 wins, 102 losses
+Loaded AI statistics: 212 games, 86 wins, 126 losses
 Server running on port 3001 and accessible on all interfaces
-User connected: ew-sfrhdIDJ1Y60xAAAB
-User connected: o8N897kykx-kfOPVAAAD
-User disconnected: o8N897kykx-kfOPVAAAD
-User connected: 9z0SZydft2FSAPXpAAAF
-User disconnected: 9z0SZydft2FSAPXpAAAF
-User connected: rX47MC447pYDLXFzAAAH
-User disconnected: rX47MC447pYDLXFzAAAH
-User connected: awZgaIXSu7GuTwA_AAAJ
+User connected: TznYYgnGGP7rQcPCAAAB
+User connected: yUz7yb493E62LFzkAAAD
+User connected: atbnfzpqFvJZcVnTAAAF
+User connected: xXHdL2v2Y7gYzfKHAAAK
+User connected: PrFkZD5B0C-T4BBSAAAL
+User connected: 36IO1bKiEJwVzWYUAAAN
+User connected: 8MAwhHLDJfBhBeQrAAAO
+User connected: iGFGwIKW38iaDoJ2AAAP
+User connected: 0YgAgeD_MHYmt_JaAAAR
+User connected: HyzYfMtrD2Ke5AQtAAAZ
+User connected: ATdUcqL0Jqk9IsswAAAa
+User connected: dR39anCkj3ilc7TwAAAb
+User connected: qCB0lHcF5NwYkZFdAAAc
+User connected: --eWaMqOOuWmGtL1AAAd
+User connected: JC-mKC3CaRjeYfG3AAAe
+User connected: kqgrV1htxqc5HQZMAAAf
+User connected: 6oTgssn7tJrVePdZAAAh
+Socket disconnected: yUz7yb493E62LFzkAAAD
+User disconnected: yUz7yb493E62LFzkAAAD
+Socket disconnected: 0YgAgeD_MHYmt_JaAAAR
+User disconnected: 0YgAgeD_MHYmt_JaAAAR
+Socket disconnected: TznYYgnGGP7rQcPCAAAB
+User disconnected: TznYYgnGGP7rQcPCAAAB
+Socket disconnected: atbnfzpqFvJZcVnTAAAF
+User disconnected: atbnfzpqFvJZcVnTAAAF
+User connected: Bzb98tAQRWREXDMgAAAk
+User connected: gTI4NiBURvKbDoK5AAAl
+User connected: lVwFvB3P2RK6Bi95AAAn
+User connected: VIhg3F54wJUU7mlRAAAp
+User connected: gDisTraaEXAQWKMVAAAr
+User connected: Ho5EKIPUMtu1MO9MAAAt
+User connected: 0fhH_i9OWYOo9oLIAAAv
+Join request from: gDisTraaEXAQWKMVAAAr { gameId: 'room1', username: 'fasfasdf', movementMode: 'automatic' }
 Added AI Bot 1 with 4 cards, elixir: 8
 Added AI Bot 2 with 4 cards, elixir: 8
 Added AI Bot 3 with 4 cards, elixir: 8
 Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 1's turn - Elixir: 14, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 made 3 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 2's turn - Elixir: 14, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 4 moves, waiting 100ms
+🤖 AI AI Bot 2 made 5 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
 🤖 AI AI Bot 3's turn - Elixir: 14, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
@@ -26,15 +51,99 @@ Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 3 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 2 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 2 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 0 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 3 moves, waiting 100ms
+🤖 AI AI Bot 2 made 2 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
 🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
@@ -44,33 +153,9 @@ Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 2 is making moves...
 🤖 AI AI Bot 2 made 1 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
@@ -79,24 +164,31 @@ Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
 🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+User connected: T0-75y6lT_PuKlxzAAA0
+User connected: Urc9jIsSHldNUv-WAAA1
+User connected: 3_1_-6_xtijIn-6dAAA3
+User connected: lN1S-PgrGnIGHHUjAAA5
+User connected: jUhxu9OTn-T0GqdUAAA7
+User connected: cIM3CyjfEbj9rcvwAAA8
+User connected: UCU-xIOHwfhY_KXqAAA9
 🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 2 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
@@ -108,167 +200,67 @@ Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
 🤖 AI AI Bot 2 made 1 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
 🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
 🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
 🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 2's turn - Elixir: 10, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 11, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 2 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 2 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
 🤖 AI AI Bot 2 made 1 moves, waiting 100ms
 🤖 AI AI Bot 2 ending turn
@@ -276,10 +268,14 @@ Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 2 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
+🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 3 is making moves...
+🤖 AI AI Bot 3 made 1 moves, waiting 100ms
+🤖 AI AI Bot 3 ending turn
 🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 2 is making moves...
 🤖 AI AI Bot 2 made 2 moves, waiting 100ms
@@ -288,1511 +284,37 @@ Game room1 started in turns mode. Players: 4
 🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 2 is making moves...
+🤖 AI AI Bot 2 made 1 moves, waiting 100ms
+🤖 AI AI Bot 2 ending turn
 🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 3 is making moves...
 🤖 AI AI Bot 3 made 1 moves, waiting 100ms
 🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 0 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 0 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 13, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 0 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 3 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 3 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 0 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 3 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 15, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-📊 Updated AI statistics: 67/171 wins (39.2% win rate)
-📊 Updated AI statistics: 68/174 wins (39.1% win rate)
-User disconnected: awZgaIXSu7GuTwA_AAAJ
-Player Cooper (awZgaIXSu7GuTwA_AAAJ) disconnected, removing from game
-User connected: pghCQbPj7t_4SXfpAAAL
+📊 Updated AI statistics: 87/215 wins (40.5% win rate)
+📊 Updated AI statistics: 88/218 wins (40.4% win rate)
+Socket disconnected: gDisTraaEXAQWKMVAAAr
+Player fasfasdf (gDisTraaEXAQWKMVAAAr) disconnected from game room1
+User disconnected: gDisTraaEXAQWKMVAAAr
+Player fasfasdf (gDisTraaEXAQWKMVAAAr) disconnected, removing from game
+Socket disconnected: 3_1_-6_xtijIn-6dAAA3
+User disconnected: 3_1_-6_xtijIn-6dAAA3
+User connected: X2SjUPLHdiavwjM-AAA_
+Socket disconnected: VIhg3F54wJUU7mlRAAAp
+User disconnected: VIhg3F54wJUU7mlRAAAp
+Socket disconnected: jUhxu9OTn-T0GqdUAAA7
+User disconnected: jUhxu9OTn-T0GqdUAAA7
+User connected: 3y1FFSXoBrFmfe8yAABB
 Room room1 has been reset
+Join request from: X2SjUPLHdiavwjM-AAA_ { gameId: 'room1', username: 'sadf', movementMode: 'automatic' }
 Added AI Bot 1 with 4 cards, elixir: 8
-Game room7 started in turns mode. Players: 2
+Game room1 started in turns mode. Players: 2
 🤖 AI AI Bot 1's turn - Elixir: 14, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 4 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 2 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
@@ -1800,643 +322,123 @@ Game room7 started in turns mode. Players: 2
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 2 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 0 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 0 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-📊 Updated AI statistics: 69/175 wins (39.4% win rate)
-📊 Updated AI statistics: 70/176 wins (39.8% win rate)
-Room room7 has been reset
-Added AI Bot 1 with 4 cards, elixir: 8
-Added AI Bot 2 with 4 cards, elixir: 8
-Added AI Bot 3 with 4 cards, elixir: 8
-Game room7 started in turns mode. Players: 4
-🤖 AI AI Bot 1's turn - Elixir: 14, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 4 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 14, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 14, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 0 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-📊 Updated AI statistics: 71/179 wins (39.7% win rate)
-📊 Updated AI statistics: 72/182 wins (39.6% win rate)
-User disconnected: pghCQbPj7t_4SXfpAAAL
-Player Adaptive (pghCQbPj7t_4SXfpAAAL) disconnected, removing from game
-User connected: ad1aP1g5NUbClAQUAAAN
-Room room7 has been reset
-Added AI Bot 1 with 4 cards, elixir: 8
-Game room2 started in turns mode. Players: 2
-🤖 AI AI Bot 1's turn - Elixir: 14, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 4 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-📊 Updated AI statistics: 73/183 wins (39.9% win rate)
-📊 Updated AI statistics: 74/184 wins (40.2% win rate)
-Room room2 has been reset
-Added AI Bot 1 with 4 cards, elixir: 8
-Added AI Bot 2 with 4 cards, elixir: 8
-Added AI Bot 3 with 4 cards, elixir: 8
-Game room2 started in turns mode. Players: 4
-🤖 AI AI Bot 1's turn - Elixir: 14, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 3 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 14, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 3 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 14, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 3 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 3 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 11, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 10, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 3 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
+📊 Updated AI statistics: 89/219 wins (40.6% win rate)
+📊 Updated AI statistics: 90/220 wins (40.9% win rate)
+Socket disconnected: X2SjUPLHdiavwjM-AAA_
+Player sadf (X2SjUPLHdiavwjM-AAA_) disconnected from game room1
+User disconnected: X2SjUPLHdiavwjM-AAA_
+Player sadf (X2SjUPLHdiavwjM-AAA_) disconnected, removing from game
+User connected: 7v2tBaK7oBDwhxE5AABD
+Room room1 has been reset
+Socket disconnected: xXHdL2v2Y7gYzfKHAAAK
+User disconnected: xXHdL2v2Y7gYzfKHAAAK
+User connected: q-CKv0eB8sP1QcLMAABF
+Join request from: 7v2tBaK7oBDwhxE5AABD { gameId: 'room1', username: 'fasf', movementMode: 'automatic' }
+Added AI Bot 1 with 4 cards, elixir: 8
+Game room1 started in turns mode. Players: 2
+🤖 AI AI Bot 1's turn - Elixir: 14, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 made 2 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 2 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
+🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
+🤖 AI AI Bot 1 is making moves...
+🤖 AI AI Bot 1 made 1 moves, waiting 100ms
+🤖 AI AI Bot 1 ending turn
 🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 2 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
+🤖 AI AI Bot 1's turn - Elixir: 9, Hand: 4 cards
 🤖 AI AI Bot 1 is making moves...
 🤖 AI AI Bot 1 made 1 moves, waiting 100ms
 🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 0 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 12, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 2 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 1's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 1 is making moves...
-🤖 AI AI Bot 1 made 1 moves, waiting 100ms
-🤖 AI AI Bot 1 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 8, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 9, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 2 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 7, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 2 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-🤖 AI AI Bot 2's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 2 is making moves...
-🤖 AI AI Bot 2 made 1 moves, waiting 100ms
-🤖 AI AI Bot 2 ending turn
-🤖 AI AI Bot 3's turn - Elixir: 6, Hand: 4 cards
-🤖 AI AI Bot 3 is making moves...
-🤖 AI AI Bot 3 made 1 moves, waiting 100ms
-🤖 AI AI Bot 3 ending turn
-📊 Updated AI statistics: 75/187 wins (40.1% win rate)
-📊 Updated AI statistics: 76/190 wins (40.0% win rate)
-User disconnected: ad1aP1g5NUbClAQUAAAN
-Player fsdf (ad1aP1g5NUbClAQUAAAN) disconnected, removing from game
-Room room2 has been reset
-User connected: zjqh8KcPhulkFW1wAAAP
-User disconnected: ew-sfrhdIDJ1Y60xAAAB
-User disconnected: zjqh8KcPhulkFW1wAAAP
-Player fsaf (zjqh8KcPhulkFW1wAAAP) disconnected, removing from game
-User connected: vC8_4OP3skI9VYiPAAAR
+📊 Updated AI statistics: 91/221 wins (41.2% win rate)
+📊 Updated AI statistics: 92/222 wins (41.4% win rate)

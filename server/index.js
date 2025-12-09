@@ -49,11 +49,11 @@ function validateCardId(cardId) {
 }
 
 function validateCoordinates(x, y) {
-    return typeof x === 'number' && typeof y === 'number' && 
-           !isNaN(x) && !isNaN(y) && 
-           x >= 0 && x < GRID_SIZE && 
-           y >= 0 && y < GRID_SIZE &&
-           Number.isInteger(x) && Number.isInteger(y);
+    return typeof x === 'number' && typeof y === 'number' &&
+        !isNaN(x) && !isNaN(y) &&
+        x >= 0 && x < GRID_SIZE &&
+        y >= 0 && y < GRID_SIZE &&
+        Number.isInteger(x) && Number.isInteger(y);
 }
 
 function validateTroopId(troopId) {
@@ -64,16 +64,16 @@ function validateTroopId(troopId) {
 function checkRateLimit(socketId) {
     const now = Date.now();
     const limit = rateLimits.get(socketId);
-    
+
     if (!limit || now > limit.resetTime) {
         rateLimits.set(socketId, { eventCount: 1, resetTime: now + RATE_LIMIT_WINDOW });
         return true;
     }
-    
+
     if (limit.eventCount >= RATE_LIMIT_MAX) {
         return false;
     }
-    
+
     limit.eventCount++;
     return true;
 }
@@ -84,7 +84,7 @@ function validateGameState(game) {
     if (!game.players || typeof game.players !== 'object') return false;
     if (!Array.isArray(game.troops)) return false;
     if (!game.terrain || !game.terrain.trench || !Array.isArray(game.terrain.trench)) return false;
-    
+
     // Validate players
     for (const [playerId, player] of Object.entries(game.players)) {
         if (!player || typeof player !== 'object') return false;
@@ -92,7 +92,7 @@ function validateGameState(game) {
         if (typeof player.elixir !== 'number' || player.elixir < 0 || player.elixir > 20) return false;
         if (!validateCoordinates(player.gridX, player.gridY)) return false;
     }
-    
+
     return true;
 }
 
@@ -117,12 +117,12 @@ function loadAIStats() {
         if (fs.existsSync(STATS_FILE)) {
             const data = fs.readFileSync(STATS_FILE, 'utf8');
             const stats = JSON.parse(data);
-            
+
             // Validate and repair stats structure
             if (!stats || typeof stats !== 'object') {
                 throw new Error('Invalid stats structure');
             }
-            
+
             // Ensure all required fields exist with defaults
             const defaultStats = {
                 totalGames: 0,
@@ -137,7 +137,7 @@ function loadAIStats() {
                 },
                 gameHistory: []
             };
-            
+
             // Merge with defaults to ensure all fields exist
             const repairedStats = {
                 totalGames: safeParseInt(stats.totalGames, 0),
@@ -152,7 +152,7 @@ function loadAIStats() {
                 },
                 gameHistory: Array.isArray(stats.gameHistory) ? stats.gameHistory : []
             };
-            
+
             // Validate win rates are between 0 and 1
             ['defensivePlays', 'offensivePlays', 'earlyGame', 'lateGame'].forEach(key => {
                 const stat = repairedStats.strategyStats[key];
@@ -163,7 +163,7 @@ function loadAIStats() {
                     stat.count = 0;
                 }
             });
-            
+
             // Validate card usage stats
             for (const cardId in repairedStats.cardUsage) {
                 const cardStat = repairedStats.cardUsage[cardId];
@@ -176,12 +176,12 @@ function loadAIStats() {
                 cardStat.losses = safeParseInt(cardStat.losses, 0);
                 cardStat.avgDamage = safeParseFloat(cardStat.avgDamage, 0);
             }
-            
+
             // Ensure totalGames matches wins + losses (approximately)
             if (repairedStats.totalGames < repairedStats.wins + repairedStats.losses) {
                 repairedStats.totalGames = repairedStats.wins + repairedStats.losses;
             }
-            
+
             return repairedStats;
         }
     } catch (error) {
@@ -203,6 +203,7 @@ function loadAIStats() {
         totalGames: 0,
         wins: 0,
         losses: 0,
+        vsHumans: { wins: 0, losses: 0, games: 0 },
         cardUsage: {},
         strategyStats: {
             defensivePlays: { count: 0, winRate: 0 },
@@ -221,17 +222,22 @@ function saveAIStats(stats) {
             console.error('Invalid stats object provided to saveAIStats');
             return;
         }
-        
+
         // Keep only last 100 games in history
         if (Array.isArray(stats.gameHistory) && stats.gameHistory.length > 100) {
             stats.gameHistory = stats.gameHistory.slice(-100);
         }
-        
+
         // Validate stats before saving
         const statsToSave = {
             totalGames: Math.max(0, safeParseInt(stats.totalGames, 0)),
             wins: Math.max(0, safeParseInt(stats.wins, 0)),
             losses: Math.max(0, safeParseInt(stats.losses, 0)),
+            vsHumans: {
+                wins: Math.max(0, safeParseInt(stats.vsHumans?.wins, 0)),
+                losses: Math.max(0, safeParseInt(stats.vsHumans?.losses, 0)),
+                games: Math.max(0, safeParseInt(stats.vsHumans?.games, 0))
+            },
             cardUsage: stats.cardUsage && typeof stats.cardUsage === 'object' ? stats.cardUsage : {},
             strategyStats: {
                 defensivePlays: {
@@ -253,7 +259,7 @@ function saveAIStats(stats) {
             },
             gameHistory: Array.isArray(stats.gameHistory) ? stats.gameHistory : []
         };
-        
+
         // Atomic write: write to temp file first, then rename
         const tempFile = `${STATS_FILE}.tmp`;
         fs.writeFileSync(tempFile, JSON.stringify(statsToSave, null, 2), 'utf8');
@@ -285,106 +291,350 @@ function recordGameOutcome(gameId, winner) {
     const isEarlyGame = gameDuration < 120; // Less than 2 minutes
     const isLateGame = gameDuration > 300; // More than 5 minutes
 
-    // Process each AI player's performance
-    Object.values(game.players).forEach(player => {
-        if (!player.isAI) return;
+    // Check if there are human players in the game
+    const hasHumanPlayers = Object.values(game.players).some(p => !p.isAI);
+    const aiPlayers = Object.values(game.players).filter(p => p.isAI);
+    const humanPlayers = Object.values(game.players).filter(p => !p.isAI);
 
-        const isWinner = winner && winner.id === player.id;
-        const cardUsage = game.cardUsage[player.id] || {};
+    // For games with humans, only count the final outcome (did AI team beat human team?)
+    // Not individual AI eliminations
+    if (hasHumanPlayers && aiPlayers.length > 0) {
+        // Only record stats once per game (not per AI)
+        const aiWon = winner && winner.isAI;
 
-        // Update overall stats
-        aiStats.totalGames++;
-        if (isWinner) {
-            aiStats.wins++;
+        // Update vsHumans stats (once per game)
+        if (!aiStats.vsHumans) {
+            aiStats.vsHumans = { wins: 0, losses: 0, games: 0 };
+        }
+        aiStats.vsHumans.games++;
+
+        if (aiWon) {
+            aiStats.vsHumans.wins++;
         } else {
-            aiStats.losses++;
+            aiStats.vsHumans.losses++;
         }
 
-        // Update card usage statistics
-        Object.keys(cardUsage).forEach(cardId => {
-            if (!aiStats.cardUsage[cardId]) {
-                aiStats.cardUsage[cardId] = { played: 0, wins: 0, losses: 0, avgDamage: 0 };
+        // Record in game history
+        aiStats.gameHistory.push({
+            gameId,
+            timestamp: Date.now(),
+            duration: gameDuration,
+            winner: winner ? winner.id : null,
+            players: Object.keys(game.players).length,
+            cardUsage: game.cardUsage,
+            aiWon: aiWon,
+            vsHuman: true
+        });
+
+        // Update overall stats for all AIs in the game (they share the outcome)
+        aiPlayers.forEach(player => {
+            const cardUsage = game.cardUsage[player.id] || {};
+
+            aiStats.totalGames++;
+            if (aiWon) {
+                aiStats.wins++;
+            } else {
+                aiStats.losses++;
             }
 
-            const count = cardUsage[cardId];
-            aiStats.cardUsage[cardId].played += count;
+            // Update card usage statistics
+            Object.keys(cardUsage).forEach(cardId => {
+                if (!aiStats.cardUsage[cardId]) {
+                    aiStats.cardUsage[cardId] = { played: 0, wins: 0, losses: 0, avgDamage: 0 };
+                }
 
+                const count = cardUsage[cardId];
+                aiStats.cardUsage[cardId].played += count;
+
+                if (aiWon) {
+                    aiStats.cardUsage[cardId].wins += count;
+                } else {
+                    aiStats.cardUsage[cardId].losses += count;
+                }
+            });
+
+            // Update strategy statistics
+            const defensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
+                const card = CARDS.find(c => c.id === cardId);
+                return sum + (card && card.type === 'defense' ? cardUsage[cardId] : 0);
+            }, 0);
+
+            const offensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
+                const card = CARDS.find(c => c.id === cardId);
+                return sum + (card && card.type === 'offense' ? cardUsage[cardId] : 0);
+            }, 0);
+
+            if (defensiveCount > offensiveCount) {
+                aiStats.strategyStats.defensivePlays.count++;
+                if (aiWon) {
+                    aiStats.strategyStats.defensivePlays.winRate =
+                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1) + 1) /
+                        aiStats.strategyStats.defensivePlays.count;
+                } else {
+                    aiStats.strategyStats.defensivePlays.winRate =
+                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1)) /
+                        aiStats.strategyStats.defensivePlays.count;
+                }
+            } else if (offensiveCount > defensiveCount) {
+                aiStats.strategyStats.offensivePlays.count++;
+                if (aiWon) {
+                    aiStats.strategyStats.offensivePlays.winRate =
+                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1) + 1) /
+                        aiStats.strategyStats.offensivePlays.count;
+                } else {
+                    aiStats.strategyStats.offensivePlays.winRate =
+                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1)) /
+                        aiStats.strategyStats.offensivePlays.count;
+                }
+            }
+
+            if (isEarlyGame) {
+                aiStats.strategyStats.earlyGame.count++;
+                if (aiWon) aiStats.strategyStats.earlyGame.winRate =
+                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1) + 1) /
+                    aiStats.strategyStats.earlyGame.count;
+                else aiStats.strategyStats.earlyGame.winRate =
+                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1)) /
+                    aiStats.strategyStats.earlyGame.count;
+            }
+
+            if (isLateGame) {
+                aiStats.strategyStats.lateGame.count++;
+                if (aiWon) aiStats.strategyStats.lateGame.winRate =
+                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1) + 1) /
+                    aiStats.strategyStats.lateGame.count;
+                else aiStats.strategyStats.lateGame.winRate =
+                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1)) /
+                    aiStats.strategyStats.lateGame.count;
+            }
+        });
+    } else {
+        // AI vs AI game or no humans - use original logic
+        Object.values(game.players).forEach(player => {
+            if (!player.isAI) return;
+
+            const isWinner = winner && winner.id === player.id;
+            const cardUsage = game.cardUsage[player.id] || {};
+
+            // Update overall stats
+            aiStats.totalGames++;
             if (isWinner) {
-                aiStats.cardUsage[cardId].wins += count;
+                aiStats.wins++;
             } else {
-                aiStats.cardUsage[cardId].losses += count;
+                aiStats.losses++;
+            }
+
+            // Update card usage statistics
+            Object.keys(cardUsage).forEach(cardId => {
+                if (!aiStats.cardUsage[cardId]) {
+                    aiStats.cardUsage[cardId] = { played: 0, wins: 0, losses: 0, avgDamage: 0 };
+                }
+
+                const count = cardUsage[cardId];
+                aiStats.cardUsage[cardId].played += count;
+
+                if (isWinner) {
+                    aiStats.cardUsage[cardId].wins += count;
+                } else {
+                    aiStats.cardUsage[cardId].losses += count;
+                }
+            });
+
+            // Update strategy statistics
+            const defensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
+                const card = CARDS.find(c => c.id === cardId);
+                return sum + (card && card.type === 'defense' ? cardUsage[cardId] : 0);
+            }, 0);
+
+            const offensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
+                const card = CARDS.find(c => c.id === cardId);
+                return sum + (card && card.type === 'offense' ? cardUsage[cardId] : 0);
+            }, 0);
+
+            if (defensiveCount > offensiveCount) {
+                aiStats.strategyStats.defensivePlays.count++;
+                if (isWinner) {
+                    aiStats.strategyStats.defensivePlays.winRate =
+                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1) + 1) /
+                        aiStats.strategyStats.defensivePlays.count;
+                } else {
+                    aiStats.strategyStats.defensivePlays.winRate =
+                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1)) /
+                        aiStats.strategyStats.defensivePlays.count;
+                }
+            } else if (offensiveCount > defensiveCount) {
+                aiStats.strategyStats.offensivePlays.count++;
+                if (isWinner) {
+                    aiStats.strategyStats.offensivePlays.winRate =
+                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1) + 1) /
+                        aiStats.strategyStats.offensivePlays.count;
+                } else {
+                    aiStats.strategyStats.offensivePlays.winRate =
+                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1)) /
+                        aiStats.strategyStats.offensivePlays.count;
+                }
+            }
+
+            if (isEarlyGame) {
+                aiStats.strategyStats.earlyGame.count++;
+                if (isWinner) aiStats.strategyStats.earlyGame.winRate =
+                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1) + 1) /
+                    aiStats.strategyStats.earlyGame.count;
+                else aiStats.strategyStats.earlyGame.winRate =
+                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1)) /
+                    aiStats.strategyStats.earlyGame.count;
+            }
+
+            if (isLateGame) {
+                aiStats.strategyStats.lateGame.count++;
+                if (isWinner) aiStats.strategyStats.lateGame.winRate =
+                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1) + 1) /
+                    aiStats.strategyStats.lateGame.count;
+                else aiStats.strategyStats.lateGame.winRate =
+                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1)) /
+                    aiStats.strategyStats.lateGame.count;
             }
         });
 
-        // Update strategy statistics
-        const defensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
-            const card = CARDS.find(c => c.id === cardId);
-            return sum + (card && card.type === 'defense' ? cardUsage[cardId] : 0);
-        }, 0);
-
-        const offensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
-            const card = CARDS.find(c => c.id === cardId);
-            return sum + (card && card.type === 'offense' ? cardUsage[cardId] : 0);
-        }, 0);
-
-        if (defensiveCount > offensiveCount) {
-            aiStats.strategyStats.defensivePlays.count++;
-            if (isWinner) {
-                aiStats.strategyStats.defensivePlays.winRate =
-                    (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1) + 1) /
-                    aiStats.strategyStats.defensivePlays.count;
-            } else {
-                aiStats.strategyStats.defensivePlays.winRate =
-                    (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1)) /
-                    aiStats.strategyStats.defensivePlays.count;
-            }
-        } else if (offensiveCount > defensiveCount) {
-            aiStats.strategyStats.offensivePlays.count++;
-            if (isWinner) {
-                aiStats.strategyStats.offensivePlays.winRate =
-                    (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1) + 1) /
-                    aiStats.strategyStats.offensivePlays.count;
-            } else {
-                aiStats.strategyStats.offensivePlays.winRate =
-                    (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1)) /
-                    aiStats.strategyStats.offensivePlays.count;
-            }
-        }
-
-        if (isEarlyGame) {
-            aiStats.strategyStats.earlyGame.count++;
-            if (isWinner) aiStats.strategyStats.earlyGame.winRate =
-                (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1) + 1) /
-                aiStats.strategyStats.earlyGame.count;
-            else aiStats.strategyStats.earlyGame.winRate =
-                (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1)) /
-                aiStats.strategyStats.earlyGame.count;
-        }
-
-        if (isLateGame) {
-            aiStats.strategyStats.lateGame.count++;
-            if (isWinner) aiStats.strategyStats.lateGame.winRate =
-                (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1) + 1) /
-                aiStats.strategyStats.lateGame.count;
-            else aiStats.strategyStats.lateGame.winRate =
-                (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1)) /
-                aiStats.strategyStats.lateGame.count;
-        }
-    });
-
-    // Record game history
-    aiStats.gameHistory.push({
-        gameId,
-        timestamp: Date.now(),
-        duration: gameDuration,
-        winner: winner ? winner.id : null,
-        players: Object.keys(game.players).length,
-        cardUsage: game.cardUsage
-    });
+        // Record game history for AI vs AI games
+        const aiPlayer = Object.values(game.players).find(p => p.isAI);
+        aiStats.gameHistory.push({
+            gameId,
+            timestamp: Date.now(),
+            duration: gameDuration,
+            winner: winner ? winner.id : null,
+            players: Object.keys(game.players).length,
+            cardUsage: game.cardUsage,
+            aiWon: winner && winner.isAI,
+            vsHuman: false
+        });
+    }
 
     // Save statistics
     saveAIStats(aiStats);
     console.log(`📊 Updated AI statistics: ${aiStats.wins}/${aiStats.totalGames} wins (${((aiStats.wins / aiStats.totalGames) * 100).toFixed(1)}% win rate)`);
+}
+
+// AI Training Mode - Run multiple AI vs AI games automatically
+let trainingMode = {
+    active: false,
+    currentRound: 0,
+    totalRounds: 0,
+    gamesPerRound: 0,
+    currentGame: 0,
+    trainingRoomId: null,
+    startTime: null,
+    stats: {
+        gamesCompleted: 0,
+        totalDuration: 0,
+        avgGameDuration: 0
+    }
+};
+
+function startAITraining(rounds = 10, gamesPerRound = 1) {
+    if (trainingMode.active) {
+        console.log('⚠️  Training already in progress');
+        return false;
+    }
+
+    trainingMode = {
+        active: true,
+        currentRound: 0,
+        totalRounds: rounds,
+        gamesPerRound: gamesPerRound,
+        currentGame: 0,
+        trainingRoomId: `training_${Date.now()}`,
+        startTime: Date.now(),
+        stats: {
+            gamesCompleted: 0,
+            totalDuration: 0,
+            avgGameDuration: 0
+        }
+    };
+
+    console.log(`🤖 Starting AI Training Mode: ${rounds} rounds, ${gamesPerRound} games per round`);
+    runNextTrainingGame();
+    return true;
+}
+
+function runNextTrainingGame() {
+    if (!trainingMode.active) return;
+
+    if (trainingMode.currentGame >= trainingMode.gamesPerRound) {
+        trainingMode.currentRound++;
+        trainingMode.currentGame = 0;
+
+        if (trainingMode.currentRound >= trainingMode.totalRounds) {
+            finishTraining();
+            return;
+        }
+    }
+
+    trainingMode.currentGame++;
+    const gameId = `${trainingMode.trainingRoomId}_r${trainingMode.currentRound}_g${trainingMode.currentGame}`;
+
+    console.log(`🎮 Training Round ${trainingMode.currentRound + 1}/${trainingMode.totalRounds}, Game ${trainingMode.currentGame}/${trainingMode.gamesPerRound}`);
+
+    // Create a new game with 4 AI players
+    const game = createGame(gameId);
+    game.isTraining = true;
+    games[gameId] = game;
+
+    // Add 4 AI players
+    const positions = [
+        { gridX: 20, gridY: 4, color: '#00BFFF' },
+        { gridX: 36, gridY: 20, color: '#FF4500' },
+        { gridX: 20, gridY: 36, color: '#32CD32' },
+        { gridX: 4, gridY: 20, color: '#FFD700' }
+    ];
+
+    for (let i = 0; i < 4; i++) {
+        const aiId = `training_ai_${gameId}_${i}`;
+        const playerInfo = positions[i];
+        playerInfo.x = playerInfo.gridX * CELL_SIZE + CELL_SIZE / 2;
+        playerInfo.y = playerInfo.gridY * CELL_SIZE + CELL_SIZE / 2;
+
+        const aiHand = getRandomHand();
+        game.players[aiId] = {
+            id: aiId,
+            username: `Training Bot ${i + 1}`,
+            isAI: true,
+            ...playerInfo,
+            baseHp: 1000,
+            elixir: 8,
+            hand: aiHand,
+            nextCard: getBalancedCard(aiHand, 0),
+            eliminated: false
+        };
+    }
+
+    // Start the game
+    game.status = 'playing';
+    game.gameStartTime = Date.now();
+    game.turnOrder = Object.keys(game.players);
+    game.currentTurn = game.turnOrder[0];
+    game.turnStartTime = Date.now();
+    game.turnTimeRemaining = TURN_DURATION;
+    game.turnNumber = 1;
+    game.gameMode = 'turns';
+    game.movementMode = 'automatic';
+
+    startGameLoop(gameId);
+}
+
+function finishTraining() {
+    const duration = Date.now() - trainingMode.startTime;
+    const avgGameTime = trainingMode.stats.gamesCompleted > 0
+        ? trainingMode.stats.totalDuration / trainingMode.stats.gamesCompleted
+        : 0;
+
+    console.log(`✅ AI Training Complete!`);
+    console.log(`   Total Games: ${trainingMode.stats.gamesCompleted}`);
+    console.log(`   Total Time: ${(duration / 1000).toFixed(1)}s`);
+    console.log(`   Avg Game Duration: ${(avgGameTime / 1000).toFixed(1)}s`);
+    console.log(`   Current AI Win Rate: ${aiStats.totalGames > 0 ? ((aiStats.wins / aiStats.totalGames) * 100).toFixed(1) : 0}%`);
+
+    trainingMode.active = false;
 }
 
 // Game State
@@ -399,15 +649,15 @@ const TURN_DURATION = 30; // 30 seconds per turn
 function calculateWinProbability(game, playerId) {
     // Validate inputs
     if (!game || !playerId || !game.players) return null;
-    
+
     const player = game.players[playerId];
     if (!player || !player.isAI) return null;
-    
+
     // Validate player stats
     if (typeof player.baseHp !== 'number' || isNaN(player.baseHp) || player.baseHp < 0) {
         player.baseHp = clamp(player.baseHp || 0, 0, 10000);
     }
-    
+
     if (!Array.isArray(player.hand)) {
         player.hand = [];
     }
@@ -432,10 +682,10 @@ function calculateWinProbability(game, playerId) {
     // Factor 3: Troop count advantage
     if (Array.isArray(game.troops)) {
         const myTroops = game.troops.filter(t => t && t.ownerId === playerId).length;
-        const enemyTroops = game.troops.filter(t => 
-            t && t.ownerId && 
-            t.ownerId !== playerId && 
-            game.players[t.ownerId] && 
+        const enemyTroops = game.troops.filter(t =>
+            t && t.ownerId &&
+            t.ownerId !== playerId &&
+            game.players[t.ownerId] &&
             !game.players[t.ownerId].eliminated
         ).length;
         const totalTroops = myTroops + enemyTroops;
@@ -457,7 +707,7 @@ function calculateWinProbability(game, playerId) {
                 }
                 return 0.5;
             });
-        
+
         if (handWinRates.length > 0) {
             const avgHandWinRate = clamp(
                 handWinRates.reduce((a, b) => a + b, 0) / handWinRates.length,
@@ -863,15 +1113,15 @@ function selectCounterCard(threat, availableCards) {
 // Strategic target selection
 function selectStrategicTarget(game, aiPlayer, enemies) {
     // Filter enemies to only neighboring players or those in allowed 180-degree arc
-    const allowedEnemies = enemies.filter(enemy => 
+    const allowedEnemies = enemies.filter(enemy =>
         isNeighboringPlayer(aiPlayer.gridX, aiPlayer.gridY, enemy.gridX, enemy.gridY) ||
         isAllowedDirection(aiPlayer.gridX, aiPlayer.gridY, enemy.gridX, enemy.gridY)
     );
-    
+
     const validTargets = allowedEnemies.length > 0 ? allowedEnemies : enemies; // Fallback to all if none in arc
-    
+
     if (validTargets.length === 0) return enemies[0]; // Safety fallback
-    
+
     // Also consider who is attacking us (revenge/defense) - highest priority
     const attackers = validTargets.filter(e =>
         game.troops.some(t => t.ownerId === e.id && t.targetBaseId === aiPlayer.id)
@@ -885,27 +1135,27 @@ function selectStrategicTarget(game, aiPlayer, enemies) {
     // Score each target based on threat level, distance, and HP
     const scoredTargets = validTargets.map(enemy => {
         let score = 0;
-        
+
         // Factor 1: Base HP (weaker = higher priority, but not exclusive)
         score += (1000 - enemy.baseHp) * 0.3;
-        
+
         // Factor 2: Distance (closer = easier to reach)
         const distance = Math.abs(enemy.gridX - aiPlayer.gridX) + Math.abs(enemy.gridY - aiPlayer.gridY);
         score += (40 - distance) * 0.2;
-        
+
         // Factor 3: Number of troops attacking them (if many, they're vulnerable)
         const troopsAttacking = game.troops.filter(t => t.targetBaseId === enemy.id && t.ownerId !== aiPlayer.id).length;
         score += troopsAttacking * 10;
-        
+
         // Factor 4: Random variation to prevent always targeting same player
         score += Math.random() * 50;
-        
+
         return { enemy, score };
     });
-    
+
     // Sort by score and pick top candidate (with some randomness)
     scoredTargets.sort((a, b) => b.score - a.score);
-    
+
     // 80% chance to pick top target, 20% chance to pick from top 2
     if (Math.random() < 0.8 || scoredTargets.length === 1) {
         return scoredTargets[0].enemy;
@@ -957,10 +1207,10 @@ function getSmartDefensePosition(game, aiPlayer, threat) {
 // Check if a position is occupied by any troop
 function isPositionOccupied(game, x, y, excludeTroopId = null) {
     if (!game || !game.troops || !Array.isArray(game.troops)) return false;
-    return game.troops.some(t => 
-        t && 
-        t.gridX === x && 
-        t.gridY === y && 
+    return game.troops.some(t =>
+        t &&
+        t.gridX === x &&
+        t.gridY === y &&
         t.id !== excludeTroopId
     );
 }
@@ -970,31 +1220,31 @@ function findNearestUnoccupiedPosition(game, startX, startY, maxDistance = 5) {
     if (!isPositionOccupied(game, startX, startY)) {
         return { gridX: startX, gridY: startY };
     }
-    
+
     // Search in expanding radius
     for (let radius = 1; radius <= maxDistance; radius++) {
         for (let dx = -radius; dx <= radius; dx++) {
             for (let dy = -radius; dy <= radius; dy++) {
                 // Only check positions on the edge of the radius
                 if (Math.abs(dx) !== radius && Math.abs(dy) !== radius) continue;
-                
+
                 const x = startX + dx;
                 const y = startY + dy;
-                
+
                 // Check bounds
                 if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) continue;
-                
+
                 // Check if passable and unoccupied
                 const trenchSet = new Set(game.terrain.trench.map(t => `${t.x},${t.y}`));
                 if (trenchSet.has(`${x},${y}`)) continue;
-                
+
                 if (!isPositionOccupied(game, x, y)) {
                     return { gridX: x, gridY: y };
                 }
             }
         }
     }
-    
+
     // If no position found, return original (will fail validation)
     return { gridX: startX, gridY: startY };
 }
@@ -1018,8 +1268,9 @@ function generateTrenchMap() {
         { x: 30, y: 10, name: 'northeast', quadrant: 'ne' },
         { x: 10, y: 30, name: 'southwest', quadrant: 'sw' },
         { x: 30, y: 30, name: 'southeast', quadrant: 'se' },
-        { x: 20, y: 20, name: 'center1', quadrant: 'center' }, // First central bridge
-        { x: 20, y: 20, name: 'center2', quadrant: 'center' }  // Second overlapping central bridge
+        // Two central bridges overlapping at the middle of the map
+        { x: 20, y: 20, name: 'center1', quadrant: 'center' },
+        { x: 20, y: 20, name: 'center2', quadrant: 'center' }
     ];
 
     // Create X-shaped mountain range (diagonals) - make it wider
@@ -1040,7 +1291,7 @@ function generateTrenchMap() {
     const centerX = 20;
     const centerY = 20;
     const crossWidth = 3; // 3 cells wide for the cross
-    
+
     // Clear horizontal cross-section (left-right through center)
     for (let x = 0; x < GRID_SIZE; x++) {
         for (let dy = -Math.floor(crossWidth / 2); dy <= Math.floor(crossWidth / 2); dy++) {
@@ -1050,7 +1301,7 @@ function generateTrenchMap() {
             }
         }
     }
-    
+
     // Clear vertical cross-section (top-bottom through center)
     for (let y = 0; y < GRID_SIZE; y++) {
         for (let dx = -Math.floor(crossWidth / 2); dx <= Math.floor(crossWidth / 2); dx++) {
@@ -1087,7 +1338,8 @@ const CARDS = [
     { id: 'barracuda', name: 'Barracuda', type: 'offense', cost: 3, hp: 130, damage: 40, speed: 6, range: 1, color: '#00CED1' },
     { id: 'orca', name: 'Orca', type: 'offense', cost: 7, hp: 300, damage: 90, speed: 4.6, range: 2, color: '#4B0082' },
     { id: 'mino', name: 'Mino', type: 'offense', cost: 3, hp: 50, damage: 40, speed: 9, range: 1, color: '#FF1493' }, // Extremely fast, meager HP
-    { id: 'leviathan', name: 'Leviathan', type: 'offense', cost: 15, hp: 2000, damage: 500, speed: 7, range: 5, color: '#8B00FF', isLegendary: true }, // Legendary: 1% drop rate, better than all other troops combined
+    // Leviathan legendary unit with reduced HP for better balance
+    { id: 'leviathan', name: 'Leviathan', type: 'offense', cost: 15, hp: 400, damage: 500, speed: 7, range: 5, color: '#8B00FF', isLegendary: true }, // Legendary: 1% drop rate, better than all other troops combined
 
     // DEFENSIVE UNITS (6 total) - More expensive, less HP, can move within territory (except walls) (all speeds +1.0)
     { id: 'crab', name: 'Crab', type: 'defense', cost: 5, hp: 300, damage: 20, speed: 3, range: 3, color: '#FF4500', isWall: false },
@@ -1097,6 +1349,20 @@ const CARDS = [
     { id: 'sea_urchin', name: 'Sea Urchin', type: 'defense', cost: 5, hp: 300, damage: 25, speed: 2.2, range: 2, color: '#8B4789', isWall: false }, // Spiky defender
     { id: 'turret', name: 'Turret', type: 'defense', cost: 8, hp: 10, damage: 7, speed: 0, range: 9, color: '#FF6B35', isWall: false, isTurret: true } // Stationary long-range turret (3/4 of original range)
 ];
+
+// Compute effective damage for a troop, applying global modifiers such as
+// reduced damage for defensive units.
+function getEffectiveDamage(troop) {
+    if (!troop || typeof troop.damage !== 'number') return 0;
+    let damage = troop.damage;
+
+    // Defensive troops deal half damage
+    if (troop.type === 'defense') {
+        damage *= 0.5;
+    }
+
+    return damage;
+}
 
 function createGame(gameId) {
     const terrain = generateTrenchMap();
@@ -1118,7 +1384,8 @@ function createGame(gameId) {
         aiPlayerCount: 0, // Number of AI players (0-3)
         roomLeader: null, // Socket ID of the room leader
         cardUsage: {}, // Track card usage per player: { playerId: { cardId: count } }
-        gameStartTime: null // Track when game started
+        gameStartTime: null, // Track when game started
+        disconnectedPlayers: {} // Store disconnected player states: { username: { ...playerData, disconnectTime } }
     };
 }
 
@@ -1152,7 +1419,7 @@ function getBalancedCard(playerHand, defensiveCount = null) {
             return leviathan;
         }
     }
-    
+
     const offensiveCards = CARDS.filter(c => c.type === 'offense' && !c.isLegendary);
     const defensiveCards = CARDS.filter(c => c.type === 'defense' && !c.isLegendary);
 
@@ -1181,29 +1448,72 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     // Clean up rate limit on disconnect
+    // Clean up rate limit on disconnect
     socket.on('disconnect', () => {
         rateLimits.delete(socket.id);
+        console.log('Socket disconnected:', socket.id);
+
+        // Find which game the player was in
+        for (const gameId in games) {
+            const game = games[gameId];
+            if (game.players[socket.id]) {
+                const player = game.players[socket.id];
+                console.log(`Player ${player.username} (${socket.id}) disconnected from game ${gameId}`);
+
+                // Store player state for reconnection (grace period of 2 minutes)
+                if (game.status === 'playing' || game.status === 'waiting') {
+                    game.disconnectedPlayers[player.username] = {
+                        ...player,
+                        disconnectTime: Date.now()
+                    };
+                    console.log(`Stored state for disconnected player ${player.username}`);
+
+                    // Remove from active players
+                    delete game.players[socket.id];
+
+                    // If game is playing, we need to handle their troops/turn
+                    if (game.status === 'playing') {
+                        // If it was their turn, auto-end it? Or let time run out?
+                        // Let time run out for now, or nextTurn will handle it if we remove them from turnOrder?
+                        // Better to keep them in turnOrder but maybe skip them if they don't reconnect?
+                        // For now, let's keep it simple: they are removed from active players.
+
+                        // We need to update turnOrder to remove the old socketId
+                        game.turnOrder = game.turnOrder.filter(id => id !== socket.id);
+
+                        // If it was their turn, advance to next player
+                        if (game.currentTurn === socket.id) {
+                            nextTurn(gameId);
+                        }
+                    }
+
+                    io.to(gameId).emit('gameState', serializeGameState(game));
+                }
+                break;
+            }
+        }
     });
 
     socket.on('joinGame', (data) => {
+        console.log('Join request from:', socket.id, data);
         // Rate limiting
         if (!checkRateLimit(socket.id)) {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!data) {
             socket.emit('error', 'Invalid join request');
             return;
         }
-        
+
         const gameId = typeof data === 'string' ? data : (data.gameId || '');
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         // Validate and sanitize username
         let username;
         if (typeof data === 'string') {
@@ -1222,7 +1532,54 @@ io.on('connection', (socket) => {
             game = createGame(gameId);
             games[gameId] = game;
         }
-        
+
+        // Check for reconnection
+        if (game.disconnectedPlayers[username]) {
+            const savedState = game.disconnectedPlayers[username];
+            const timeSinceDisconnect = Date.now() - savedState.disconnectTime;
+
+            // Allow reconnection within 5 minutes
+            if (timeSinceDisconnect < 5 * 60 * 1000) {
+                console.log(`Player ${username} reconnecting...`);
+
+                // Restore player state with new socket ID
+                game.players[socket.id] = {
+                    ...savedState,
+                    id: socket.id, // Update to new socket ID
+                    disconnectTime: undefined
+                };
+
+                // Remove from disconnected list
+                delete game.disconnectedPlayers[username];
+
+                // Update ownership of troops
+                game.troops.forEach(t => {
+                    if (t.ownerId === savedState.id) {
+                        t.ownerId = socket.id;
+                    }
+                });
+
+                // Update turn order if game is playing
+                if (game.status === 'playing') {
+                    // Add back to turn order if not present
+                    if (!game.turnOrder.includes(socket.id)) {
+                        game.turnOrder.push(socket.id);
+                    }
+                }
+
+                socket.join(gameId);
+                io.to(gameId).emit('gameState', serializeGameState(game));
+                socket.emit('playerInfo', game.players[socket.id]);
+
+                // Notify others
+                socket.to(gameId).emit('toast', { message: `${username} reconnected!`, type: 'success' });
+                return;
+            } else {
+                // Expired
+                delete game.disconnectedPlayers[username];
+            }
+        }
+
         // Check if player is already in a game
         if (game.players[socket.id]) {
             socket.emit('error', 'You are already in this game');
@@ -1283,35 +1640,40 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('getAIStats', () => {
+        if (!checkRateLimit(socket.id)) return;
+        socket.emit('aiStats', aiStats);
+    });
+
     socket.on('updateRoomSettings', ({ gameId, settings }) => {
         // Rate limiting
         if (!checkRateLimit(socket.id)) {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!gameId || !settings) {
             socket.emit('error', 'Missing required parameters');
             return;
         }
-        
+
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         const game = games[gameId];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
         }
-        
+
         if (game.status !== 'waiting') {
             socket.emit('error', 'Can only change settings while waiting');
             return;
         }
-        
+
         if (socket.id !== game.roomLeader) {
             socket.emit('error', 'Only the room leader can change settings');
             return;
@@ -1322,7 +1684,7 @@ io.on('connection', (socket) => {
                 socket.emit('error', 'Invalid game mode');
                 return;
             }
-            
+
             // Don't allow live mode with AI players
             if (settings.gameMode === 'live' && game.aiPlayerCount > 0) {
                 socket.emit('error', 'Cannot set live mode with AI players');
@@ -1358,29 +1720,29 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!gameId) {
             socket.emit('error', 'Missing game ID');
             return;
         }
-        
+
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         const game = games[gameId];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
         }
-        
+
         if (game.status !== 'waiting') {
             socket.emit('error', 'Game has already started');
             return;
         }
-        
+
         // Only room leader or players in the game can start
         if (socket.id !== game.roomLeader && !game.players[socket.id]) {
             socket.emit('error', 'You are not authorized to start this game');
@@ -1449,34 +1811,34 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!gameId) {
             socket.emit('error', 'Missing game ID');
             return;
         }
-        
+
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         const game = games[gameId];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
         }
-        
+
         if (game.status !== 'playing') {
             socket.emit('error', 'Game is not in progress');
             return;
         }
-        
+
         if (game.gameMode !== 'turns') {
             socket.emit('error', 'Turn-based mode is not active');
             return;
         }
-        
+
         if (socket.id !== game.currentTurn) {
             socket.emit('error', 'Not your turn');
             return;
@@ -1491,29 +1853,29 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!gameId || !troopId || !targetBaseId) {
             socket.emit('error', 'Missing required parameters');
             return;
         }
-        
+
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         if (!validateTroopId(troopId)) {
             socket.emit('error', 'Invalid troop ID');
             return;
         }
-        
+
         const game = games[gameId];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
         }
-        
+
         if (game.status !== 'playing') {
             socket.emit('error', 'Game is not in progress');
             return;
@@ -1524,24 +1886,24 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Troop not found');
             return;
         }
-        
+
         if (troop.ownerId !== socket.id) {
             socket.emit('error', 'You do not own this troop');
             return;
         }
-        
+
         // Validate target base
         const targetPlayer = game.players[targetBaseId];
         if (!targetPlayer) {
             socket.emit('error', 'Target player not found');
             return;
         }
-        
+
         if (targetPlayer.eliminated) {
             socket.emit('error', 'Target player has been eliminated');
             return;
         }
-        
+
         if (targetPlayer.id === socket.id) {
             socket.emit('error', 'Cannot target yourself');
             return;
@@ -1560,44 +1922,44 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!gameId || !troopId || targetGridX === undefined || targetGridY === undefined) {
             socket.emit('error', 'Missing required parameters');
             return;
         }
-        
+
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         if (!validateTroopId(troopId)) {
             socket.emit('error', 'Invalid troop ID');
             return;
         }
-        
+
         if (!validateCoordinates(targetGridX, targetGridY)) {
             socket.emit('error', 'Invalid target coordinates');
             return;
         }
-        
+
         const game = games[gameId];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
         }
-        
+
         if (game.status !== 'playing') {
             socket.emit('error', 'Game is not in progress');
             return;
         }
-        
+
         if (game.movementMode !== 'manual') {
             socket.emit('error', 'Manual movement is not enabled');
             return;
         }
-        
+
         if (socket.id !== game.currentTurn) {
             socket.emit('error', 'Not your turn');
             return;
@@ -1608,12 +1970,12 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Troop not found');
             return;
         }
-        
+
         if (troop.ownerId !== socket.id) {
             socket.emit('error', 'You do not own this troop');
             return;
         }
-        
+
         // Walls cannot move
         if (troop.isWall) {
             socket.emit('error', 'Walls cannot be moved');
@@ -1632,7 +1994,7 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Target is out of range');
             return;
         }
-        
+
         if (distance === 0) {
             socket.emit('error', 'Cannot move to the same position');
             return;
@@ -1642,6 +2004,12 @@ io.on('connection', (socket) => {
         const trenchSet = new Set(game.terrain.trench.map(t => `${t.x},${t.y}`));
         if (trenchSet.has(`${targetGridX},${targetGridY}`)) {
             socket.emit('error', 'Cannot move to impassable terrain');
+            return;
+        }
+
+        // Prevent moving into an occupied square
+        if (isPositionOccupied(game, targetGridX, targetGridY, troopId)) {
+            socket.emit('error', 'Cannot move onto another troop');
             return;
         }
 
@@ -1678,34 +2046,34 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Too many requests. Please slow down.');
             return;
         }
-        
+
         // Validate input
         if (!gameId || !cardId) {
             socket.emit('error', 'Missing required parameters');
             return;
         }
-        
+
         if (!validateGameId(gameId)) {
             socket.emit('error', 'Invalid game ID');
             return;
         }
-        
+
         if (!validateCardId(cardId)) {
             socket.emit('error', 'Invalid card ID');
             return;
         }
-        
+
         const game = games[gameId];
         if (!game) {
             socket.emit('error', 'Game not found');
             return;
         }
-        
+
         if (game.status !== 'playing') {
             socket.emit('error', 'Game is not in progress');
             return;
         }
-        
+
         // Validate game state
         if (!validateGameState(game)) {
             socket.emit('error', 'Game state is invalid');
@@ -1723,7 +2091,7 @@ io.on('connection', (socket) => {
             socket.emit('error', 'You are not in this game');
             return;
         }
-        
+
         if (player.eliminated) {
             socket.emit('error', 'You have been eliminated');
             return;
@@ -1734,7 +2102,7 @@ io.on('connection', (socket) => {
             socket.emit('error', 'Card not found');
             return;
         }
-        
+
         if (player.elixir < card.cost) {
             socket.emit('error', 'Not enough elixir');
             return;
@@ -1748,7 +2116,7 @@ io.on('connection', (socket) => {
                     return;
                 }
             }
-            
+
             // Check defensive unit cap
             const defensiveCount = game.troops.filter(t => t.ownerId === socket.id && t.type === 'defense').length;
             if (defensiveCount >= 10) {
@@ -1756,12 +2124,12 @@ io.on('connection', (socket) => {
                 return;
             }
         }
-        
+
         // Validate target base for offensive units
         // If only 2 players remain, auto-target the enemy base
         const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
         const isTwoPlayerMode = activePlayers.length === 2;
-        
+
         if (card.type === 'offense') {
             if (isTwoPlayerMode) {
                 // Auto-target the only enemy when only 2 players remain
@@ -1961,17 +2329,19 @@ function isOnCentralBridge(x, y) {
     const centerX = 20;
     const centerY = 20;
     const crossWidth = 3;
-    
+
     // Check if on horizontal cross-section
     const onHorizontal = Math.abs(y - centerY) <= Math.floor(crossWidth / 2);
     // Check if on vertical cross-section
     const onVertical = Math.abs(x - centerX) <= Math.floor(crossWidth / 2);
-    
+
     return onHorizontal || onVertical;
 }
 
 // A* pathfinding with bridge preference
-function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
+// Optionally accepts a set of blocked positions (e.g. other troops) that should
+// be treated as impassable so units "search harder" for alternative routes.
+function findPath(startX, startY, endX, endY, trenchSet, bridges = null, blockedPositions = null) {
     const openSet = [];
     const closedSet = new Set();
     const cameFrom = new Map();
@@ -2018,17 +2388,23 @@ function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
             if (closedSet.has(neighborKey)) continue;
             if (!isPassable(neighbor.x, neighbor.y, trenchSet)) continue;
 
+            // Avoid stepping onto other troops if a blockedPositions set is provided.
+            // Allow stepping onto the exact end tile so units can still reach their goal.
+            if (blockedPositions && blockedPositions.has(neighborKey) && neighborKey !== endKey) {
+                continue;
+            }
+
             // Calculate base movement cost
             let movementCost = 1;
-            
+
             // Check if we need to cross a bridge (path crosses from one side to another)
             const needsBridge = needsBridgeCrossing(startX, startY, endX, endY, current.x, current.y, neighbor.x, neighbor.y);
-            
+
             if (needsBridge) {
                 // Strongly prefer bridge tiles when crossing
                 const isNeighborOnBridge = bridges ? isOnBridge(neighbor.x, neighbor.y, bridges) : isOnCentralBridge(neighbor.x, neighbor.y);
                 const isCurrentOnBridge = bridges ? isOnBridge(current.x, current.y, bridges) : isOnCentralBridge(current.x, current.y);
-                
+
                 if (isNeighborOnBridge) {
                     // Prefer bridge tiles - reduce cost significantly
                     movementCost = 0.5;
@@ -2060,21 +2436,21 @@ function needsBridgeCrossing(startX, startY, endX, endY, currentX, currentY, nex
     // Determine quadrants
     const centerX = GRID_SIZE / 2; // 20
     const centerY = GRID_SIZE / 2; // 20
-    
+
     // Check if start and end are on opposite sides of the center
     const startSideX = startX < centerX ? 'left' : (startX > centerX ? 'right' : 'center');
     const startSideY = startY < centerY ? 'top' : (startY > centerY ? 'bottom' : 'center');
     const endSideX = endX < centerX ? 'left' : (endX > centerX ? 'right' : 'center');
     const endSideY = endY < centerY ? 'top' : (endY > centerY ? 'bottom' : 'center');
-    
+
     // If crossing center in X or Y direction, we need a bridge
     const crossingX = (startSideX === 'left' && endSideX === 'right') || (startSideX === 'right' && endSideX === 'left');
     const crossingY = (startSideY === 'top' && endSideY === 'bottom') || (startSideY === 'bottom' && endSideY === 'top');
-    
+
     // Check if current position is near center and next position crosses center
     const currentNearCenter = Math.abs(currentX - centerX) <= 3 && Math.abs(currentY - centerY) <= 3;
     const nextNearCenter = Math.abs(nextX - centerX) <= 3 && Math.abs(nextY - centerY) <= 3;
-    
+
     return (crossingX || crossingY) && (currentNearCenter || nextNearCenter);
 }
 
@@ -2083,14 +2459,14 @@ function heuristic(x1, y1, x2, y2) {
 }
 
 function nextTurn(gameId) {
-        const game = games[gameId];
+    const game = games[gameId];
     if (!game || game.status !== 'playing') return;
 
     // Validate game state
     if (!validateGameState(game)) {
         console.error(`Invalid game state in nextTurn for ${gameId}`);
-            return;
-        }
+        return;
+    }
 
     // Check for winner before proceeding
     const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
@@ -2155,11 +2531,11 @@ function nextTurn(gameId) {
     while (attempts < maxAttempts) {
         const nextPlayerId = game.turnOrder[nextIndex];
         const nextPlayer = game.players[nextPlayerId];
-        
+
         if (nextPlayer && !nextPlayer.eliminated) {
             break; // Found valid player
         }
-        
+
         nextIndex = (nextIndex + 1) % game.turnOrder.length;
         attempts++;
     }
@@ -2218,17 +2594,18 @@ function applyCombatDamage(game, gameId) {
 
                 // If adjacent to base, deal damage
                 if (dist <= troop.range + 1) {
-                    targetBase.baseHp -= troop.damage;
+                    const damage = getEffectiveDamage(troop);
+                    targetBase.baseHp -= damage;
 
                     if (targetBase.baseHp <= 0) {
                         targetBase.baseHp = 0;
                         targetBase.eliminated = true;
                         io.to(gameId).emit('gameOver', { winner: null, eliminated: troop.targetBaseId });
 
-                            // Check for winner
-                            const activePlayers = Object.values(game.players).filter(p => !p.eliminated);
-                            if (activePlayers.length === 1 && Object.keys(game.players).length > 1) {
-                                game.status = 'ended';
+                        // Check for winner
+                        const activePlayers = Object.values(game.players).filter(p => !p.eliminated);
+                        if (activePlayers.length === 1 && Object.keys(game.players).length > 1) {
+                            game.status = 'ended';
                             const winner = activePlayers[0];
                             io.to(gameId).emit('gameOver', { winner: winner.id, winnerName: winner.username });
 
@@ -2251,7 +2628,8 @@ function applyCombatDamage(game, gameId) {
 
             const dist = Math.abs(other.gridX - troop.gridX) + Math.abs(other.gridY - troop.gridY);
             if (dist <= troop.range) {
-                other.hp -= troop.damage;
+                const damage = getEffectiveDamage(troop);
+                other.hp -= damage;
 
                 // Special handling for turrets - emit projectile event
                 if (troop.isTurret) {
@@ -2259,19 +2637,19 @@ function applyCombatDamage(game, gameId) {
                         type: 'projectile',
                         attackerId: troop.id,
                         targetId: other.id,
-                        damage: troop.damage,
+                        damage,
                         fromX: troop.x,
                         fromY: troop.y,
                         toX: other.x,
                         toY: other.y,
                         isBase: false
                     });
-                    } else {
+                } else {
                     combatEvents.push({
                         type: 'attack',
                         attackerId: troop.id,
                         targetId: other.id,
-                        damage: troop.damage,
+                        damage,
                         x: other.x,
                         y: other.y,
                         isBase: false
@@ -2311,7 +2689,7 @@ function resetGame(gameId) {
             clearInterval(game.elixirRegenInterval);
             game.elixirRegenInterval = null;
         }
-        
+
         // Clean up any AI action timeouts
         if (game.aiActionTimeouts) {
             Object.values(game.aiActionTimeouts).forEach(timeout => {
@@ -2319,7 +2697,7 @@ function resetGame(gameId) {
             });
             game.aiActionTimeouts = {};
         }
-        
+
         // Notify all players that room is resetting
         io.to(gameId).emit('roomReset');
 
@@ -2351,7 +2729,7 @@ function getBridgeForPath(fromBase, toBase, bridges) {
         return bridges.find(b => b.quadrant === 'ne'); // Northeast bridge
     } else if (fromQuadrant.x === 'left' && fromQuadrant.y === 'bottom') {
         return bridges.find(b => b.quadrant === 'sw'); // Southwest bridge
-                } else {
+    } else {
         return bridges.find(b => b.quadrant === 'se'); // Southeast bridge
     }
 }
@@ -2360,34 +2738,35 @@ function getBridgeForPath(fromBase, toBase, bridges) {
 // Check if a troop is in range of defensive troops and apply damage if moving away
 function applyDefensiveTroopDamage(game, movingTroop, oldGridX, oldGridY, newGridX, newGridY) {
     if (!movingTroop || !game.troops || !Array.isArray(game.troops)) return;
-    
+
     // Only apply to offensive troops moving away from defensive troops
     if (movingTroop.type === 'defense') return;
-    
+
     // Find all defensive troops that could attack this troop
-    const defensiveTroops = game.troops.filter(t => 
-        t && 
-        t.type === 'defense' && 
+    const defensiveTroops = game.troops.filter(t =>
+        t &&
+        t.type === 'defense' &&
         t.ownerId !== movingTroop.ownerId &&
         !t.isWall && // Walls don't attack
-        game.players[t.ownerId] && 
+        game.players[t.ownerId] &&
         !game.players[t.ownerId].eliminated
     );
-    
+
     for (const defensiveTroop of defensiveTroops) {
         // Calculate distance from old position to defensive troop
         const oldDistance = Math.abs(oldGridX - defensiveTroop.gridX) + Math.abs(oldGridY - defensiveTroop.gridY);
-        
+
         // Check if troop was in range before moving
         if (oldDistance <= defensiveTroop.range + 1) {
             // Calculate distance from new position to defensive troop
             const newDistance = Math.abs(newGridX - defensiveTroop.gridX) + Math.abs(newGridY - defensiveTroop.gridY);
-            
+
             // If moving away (distance increased), apply damage
             if (newDistance > oldDistance) {
-                // Apply damage
-                movingTroop.hp = Math.max(0, movingTroop.hp - defensiveTroop.damage);
-                
+                // Apply damage (defensive troops deal reduced damage via helper)
+                const damage = getEffectiveDamage(defensiveTroop);
+                movingTroop.hp = Math.max(0, movingTroop.hp - damage);
+
                 // Remove troop if dead
                 if (movingTroop.hp <= 0) {
                     const index = game.troops.findIndex(t => t.id === movingTroop.id);
@@ -2395,7 +2774,7 @@ function applyDefensiveTroopDamage(game, movingTroop, oldGridX, oldGridY, newGri
                         game.troops.splice(index, 1);
                     }
                 }
-                
+
                 // Only apply damage from one defensive troop per move (first one found)
                 break;
             }
@@ -2413,13 +2792,13 @@ function isNeighboringPlayer(fromX, fromY, toX, toY) {
         { x: 20, y: 36 },  // Bottom
         { x: 4, y: 20 }    // Left
     ];
-    
+
     // Check if from and to are both player base positions
     const fromIsBase = playerPositions.some(p => p.x === fromX && p.y === fromY);
     const toIsBase = playerPositions.some(p => p.x === toX && p.y === toY);
-    
+
     if (!fromIsBase || !toIsBase) return false;
-    
+
     // If both are base positions, they are neighbors (can always reach via bridges)
     return true;
 }
@@ -2431,50 +2810,50 @@ function isAllowedDirection(fromX, fromY, toX, toY) {
     const dy = toY - fromY;
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
-    
+
     // Determine which edge the starting position is closest to
     const centerX = GRID_SIZE / 2; // 20
     const centerY = GRID_SIZE / 2; // 20
-    
+
     // Calculate direction from center to starting position
     const dxFromCenter = fromX - centerX;
     const dyFromCenter = fromY - centerY;
-    
+
     // Determine primary direction (top, right, bottom, left)
     let primaryDirection = null;
     if (Math.abs(dyFromCenter) > Math.abs(dxFromCenter)) {
         primaryDirection = dyFromCenter < 0 ? 'top' : 'bottom';
-            } else {
+    } else {
         primaryDirection = dxFromCenter > 0 ? 'right' : 'left';
     }
-    
+
     // Check if target is in allowed 180-degree arc
     // Allowed: left side, right side, or opposite (180 degrees)
     // NOT allowed: diagonally (corners)
-    
+
     if (primaryDirection === 'top') {
         // From top: can go left (dx < 0, primarily horizontal), right (dx > 0, primarily horizontal), or bottom (dy > 0, primarily vertical)
         // NOT: both dx and dy significant (diagonal)
         return (dx < 0 && absDx > absDy * 2) || // Left (primarily horizontal left)
-               (dx > 0 && absDx > absDy * 2) || // Right (primarily horizontal right)
-               (dy > 0 && absDy > absDx * 2);  // Bottom (primarily vertical down)
+            (dx > 0 && absDx > absDy * 2) || // Right (primarily horizontal right)
+            (dy > 0 && absDy > absDx * 2);  // Bottom (primarily vertical down)
     } else if (primaryDirection === 'right') {
         // From right: can go top (dy < 0, primarily vertical), bottom (dy > 0, primarily vertical), or left (dx < 0, primarily horizontal)
         return (dy < 0 && absDy > absDx * 2) || // Top (primarily vertical up)
-               (dy > 0 && absDy > absDx * 2) || // Bottom (primarily vertical down)
-               (dx < 0 && absDx > absDy * 2);  // Left (primarily horizontal left)
+            (dy > 0 && absDy > absDx * 2) || // Bottom (primarily vertical down)
+            (dx < 0 && absDx > absDy * 2);  // Left (primarily horizontal left)
     } else if (primaryDirection === 'bottom') {
         // From bottom: can go left (dx < 0, primarily horizontal), right (dx > 0, primarily horizontal), or top (dy < 0, primarily vertical)
         return (dx < 0 && absDx > absDy * 2) || // Left (primarily horizontal left)
-               (dx > 0 && absDx > absDy * 2) || // Right (primarily horizontal right)
-               (dy < 0 && absDy > absDx * 2);  // Top (primarily vertical up)
+            (dx > 0 && absDx > absDy * 2) || // Right (primarily horizontal right)
+            (dy < 0 && absDy > absDx * 2);  // Top (primarily vertical up)
     } else if (primaryDirection === 'left') {
         // From left: can go top (dy < 0, primarily vertical), bottom (dy > 0, primarily vertical), or right (dx > 0, primarily horizontal)
         return (dy < 0 && absDy > absDx * 2) || // Top (primarily vertical up)
-               (dy > 0 && absDy > absDx * 2) || // Bottom (primarily vertical down)
-               (dx > 0 && absDx > absDy * 2);  // Right (primarily horizontal right)
+            (dy > 0 && absDy > absDx * 2) || // Bottom (primarily vertical down)
+            (dx > 0 && absDx > absDy * 2);  // Right (primarily horizontal right)
     }
-    
+
     return true; // Default allow if can't determine
 }
 
@@ -2497,6 +2876,14 @@ function isInSameQuadrant(troop1, troop2, basePlayer) {
 
 function moveTroopsOnTurnEnd(game, aiOnly = false) {
     const trenchSet = new Set(game.terrain.trench.map(t => `${t.x},${t.y}`));
+
+    // Track occupied squares to prevent multiple troops in the same cell.
+    const occupiedPositions = new Set();
+    game.troops.forEach(t => {
+        if (t && typeof t.gridX === 'number' && typeof t.gridY === 'number') {
+            occupiedPositions.add(`${t.gridX},${t.gridY}`);
+        }
+    });
 
     game.troops.forEach(troop => {
         // In manual mode with aiOnly=true, only move AI-owned troops
@@ -2521,7 +2908,7 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
         // Determine target based on troop type
         let targetGridX, targetGridY;
 
-                if (troop.type === 'defense' && ownerBase) {
+        if (troop.type === 'defense' && ownerBase) {
             // Walls and turrets don't move
             if (troop.isWall || troop.isTurret) {
                 return;
@@ -2596,40 +2983,40 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                     troop.patrolTarget = null;
                 }
             }
-                } else {
+        } else {
             // Offensive units: pathfind to target base
             // Check if only 2 players remain - auto-target enemy base
             const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
             const isTwoPlayerMode = activePlayers.length === 2;
-            
+
             if (!troop.targetBaseId) {
                 // Pick the target that was assigned when deployed, or a random enemy
-                            const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
-                            if (enemies.length > 0) {
+                const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
+                if (enemies.length > 0) {
                     // If only 2 players, always target the enemy base
                     if (isTwoPlayerMode && enemies.length === 1) {
                         troop.targetBaseId = enemies[0].id;
                     } else {
-                                const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
-                                troop.targetBaseId = randomEnemy.id;
-                            }
-                        }
+                        const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
+                        troop.targetBaseId = randomEnemy.id;
+                    }
+                }
             }
 
-                        const targetBase = game.players[troop.targetBaseId];
+            const targetBase = game.players[troop.targetBaseId];
             if (!targetBase || targetBase.eliminated) {
                 // Target is gone, pick new target
                 const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
                 if (enemies.length > 0) {
                     // Filter enemies to only neighboring players or those in allowed 180-degree arc
                     const ownerBase = game.players[troop.ownerId];
-                    const allowedEnemies = enemies.filter(enemy => 
+                    const allowedEnemies = enemies.filter(enemy =>
                         isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, enemy.gridX, enemy.gridY) ||
                         isAllowedDirection(ownerBase.gridX, ownerBase.gridY, enemy.gridX, enemy.gridY)
                     );
-                    
+
                     const validTargets = allowedEnemies.length > 0 ? allowedEnemies : enemies; // Fallback to all if none in arc
-                    
+
                     // If only 2 players, always target the enemy base
                     if (isTwoPlayerMode && validTargets.length === 1) {
                         troop.targetBaseId = validTargets[0].id;
@@ -2643,7 +3030,7 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                         targetGridY = newTarget.gridY;
                     }
                 }
-                        } else {
+            } else {
                 targetGridX = targetBase.gridX;
                 targetGridY = targetBase.gridY;
             }
@@ -2655,20 +3042,20 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
         if (!troop.path || troop.path.length === 0) {
             // Pass bridge information to pathfinding for strict bridge following
             const bridges = game.terrain.bridges || [];
-            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
-            
+            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+
             // Check if target is a neighboring player base
             const ownerBase = game.players[troop.ownerId];
             const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
-            
+
             // Only route through center bridge if NOT attacking a neighboring tower
             if (game.movementMode === 'automatic' && !targetIsNeighboring && Math.random() < 0.3 && path.length > 0) {
                 // Try routing through center bridge
                 const centerX = 20;
                 const centerY = 20;
-                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
-                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
-                
+                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges, occupiedPositions);
+                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+
                 if (path1.length > 0 && path2.length > 0) {
                     // Use center route if it's not too much longer (within 50% of direct path)
                     const centerPathLength = path1.length + path2.length;
@@ -2677,14 +3064,34 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                     }
                 }
             }
-            
+
             troop.path = path;
         }
 
         // Move along the path
         for (let i = 0; i < movesPerTurn && troop.path && troop.path.length > 0; i++) {
             const nextStep = troop.path[0];
-            
+
+            // Prevent multiple troops ending up on the same square:
+            // if the next step is currently occupied (by another troop or
+            // by a troop that has already moved this tick), try to find an
+            // alternative route that avoids occupied squares before giving up.
+            const nextKey = `${nextStep.x},${nextStep.y}`;
+            const currentKey = `${troop.gridX},${troop.gridY}`;
+            const occupiedByOther = occupiedPositions.has(nextKey) && nextKey !== currentKey;
+            if (occupiedByOther) {
+                // Recalculate path avoiding currently occupied squares
+                const bridges = game.terrain.bridges || [];
+                const newPath = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+                if (!newPath || newPath.length === 0) {
+                    // No alternative path found; this unit can't move this tick
+                    break;
+                }
+                troop.path = newPath;
+                // Restart this step with the new path
+                continue;
+            }
+
             // Store old position for defensive troop damage check
             const oldGridX = troop.gridX;
             const oldGridY = troop.gridY;
@@ -2692,9 +3099,10 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             // Check if moving away from defensive troops and apply damage
             applyDefensiveTroopDamage(game, troop, oldGridX, oldGridY, nextStep.x, nextStep.y);
 
-            // If troop died from defensive damage, stop moving
+            // If troop died from defensive damage, stop moving and free the old cell
             const troopStillExists = game.troops.find(t => t.id === troop.id);
             if (!troopStillExists) {
+                occupiedPositions.delete(`${oldGridX},${oldGridY}`);
                 break;
             }
 
@@ -2703,6 +3111,10 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             troop.gridY = nextStep.y;
             troop.x = troop.gridX * CELL_SIZE + CELL_SIZE / 2;
             troop.y = troop.gridY * CELL_SIZE + CELL_SIZE / 2;
+
+            // Update occupied positions set
+            occupiedPositions.delete(`${oldGridX},${oldGridY}`);
+            occupiedPositions.add(nextKey);
 
             // Remove this step from path
             troop.path.shift();
@@ -2713,21 +3125,21 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                 if (dist > 1) {
                     // Pass bridge information to pathfinding for strict bridge following
                     const bridges = game.terrain.bridges || [];
-                    
+
                     // Check if target is a neighboring player base
                     const ownerBase = game.players[troop.ownerId];
                     const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
-                    
+
                     // Only route through center bridge if NOT attacking a neighboring tower
-                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
-                    
+                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+
                     if (game.movementMode === 'automatic' && !targetIsNeighboring && Math.random() < 0.3 && path.length > 0) {
                         // Try routing through center bridge
                         const centerX = 20;
                         const centerY = 20;
-                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
-                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
-                        
+                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges, occupiedPositions);
+                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+
                         if (path1.length > 0 && path2.length > 0) {
                             // Use center route if it's not too much longer (within 50% of direct path)
                             const centerPathLength = path1.length + path2.length;
@@ -2736,7 +3148,7 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                             }
                         }
                     }
-                    
+
                     troop.path = path;
                 }
             }
