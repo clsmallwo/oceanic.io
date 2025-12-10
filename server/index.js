@@ -1392,7 +1392,7 @@ const CARDS = [
     { id: 'barracuda', name: 'Barracuda', type: 'offense', cost: 3, hp: 130, damage: 40, speed: 6, range: 1, color: '#00CED1' },
     { id: 'orca', name: 'Orca', type: 'offense', cost: 7, hp: 300, damage: 90, speed: 4.6, range: 2, color: '#4B0082' },
     { id: 'mino', name: 'Mino', type: 'offense', cost: 3, hp: 50, damage: 40, speed: 9, range: 1, color: '#FF1493' }, // Extremely fast, meager HP
-    { id: 'leviathan', name: 'Leviathan', type: 'offense', cost: 15, hp: 2000, damage: 500, speed: 7, range: 5, color: '#8B00FF', isLegendary: true }, // Legendary: 1% drop rate, better than all other troops combined
+    { id: 'leviathan', name: 'Leviathan', type: 'offense', cost: 15, hp: 400, damage: 250, speed: 7, range: 5, color: '#8B00FF', isLegendary: true }, // Legendary: 0.3% drop rate, balanced legendary unit
 
     // DEFENSIVE UNITS (6 total) - More expensive, less HP, can move within territory (except walls) (all speeds +1.0)
     { id: 'crab', name: 'Crab', type: 'defense', cost: 5, hp: 300, damage: 20, speed: 3, range: 3, color: '#FF4500', isWall: false },
@@ -1455,8 +1455,8 @@ function getRandomHand() {
 // Get a balanced random card based on player's current hand
 // If defensiveCount is provided and >= 10, only return offensive cards
 function getBalancedCard(playerHand, defensiveCount = null) {
-    // 1% chance to get the legendary Leviathan
-    if (Math.random() < 0.01) {
+    // 0.3% chance to get the legendary Leviathan (lowered from 1%)
+    if (Math.random() < 0.003) {
         const leviathan = CARDS.find(c => c.id === 'leviathan');
         if (leviathan) {
             return leviathan;
