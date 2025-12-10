@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const tf = require('@tensorflow/tfjs');
 
 const app = express();
 app.use(cors());
@@ -18,8 +19,9 @@ const io = new Server(server, {
 
 const PORT = 3001;
 
-// AI Statistics File
+// AI / ML files
 const STATS_FILE = path.join(__dirname, 'ai_stats.json');
+const ML_MODEL_FILE = path.join(__dirname, 'ml_model.json');
 
 // Rate limiting: Track events per socket
 const rateLimits = new Map(); // socketId -> { eventCount, resetTime }
@@ -203,7 +205,6 @@ function loadAIStats() {
         totalGames: 0,
         wins: 0,
         losses: 0,
-        vsHumans: { wins: 0, losses: 0, games: 0 },
         cardUsage: {},
         strategyStats: {
             defensivePlays: { count: 0, winRate: 0 },
@@ -233,11 +234,6 @@ function saveAIStats(stats) {
             totalGames: Math.max(0, safeParseInt(stats.totalGames, 0)),
             wins: Math.max(0, safeParseInt(stats.wins, 0)),
             losses: Math.max(0, safeParseInt(stats.losses, 0)),
-            vsHumans: {
-                wins: Math.max(0, safeParseInt(stats.vsHumans?.wins, 0)),
-                losses: Math.max(0, safeParseInt(stats.vsHumans?.losses, 0)),
-                games: Math.max(0, safeParseInt(stats.vsHumans?.games, 0))
-            },
             cardUsage: stats.cardUsage && typeof stats.cardUsage === 'object' ? stats.cardUsage : {},
             strategyStats: {
                 defensivePlays: {
@@ -282,6 +278,224 @@ function saveAIStats(stats) {
 let aiStats = loadAIStats();
 console.log(`Loaded AI statistics: ${aiStats.totalGames} games, ${aiStats.wins} wins, ${aiStats.losses} losses`);
 
+// ============================================================================
+// TensorFlow ML Model Loading and Inference
+// ============================================================================
+
+let mlModel = null;
+
+// Load TensorFlow model from ml_model.json
+async function loadMLModel() {
+    try {
+        if (!fs.existsSync(ML_MODEL_FILE)) {
+            console.log('⚠️ ML model file not found. Model will be initialized on first training.');
+            return null;
+        }
+
+        const modelData = JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'));
+        
+        if (!modelData.weights || modelData.weights.length === 0) {
+            console.log('⚠️ No weights in ML model file.');
+            return null;
+        }
+
+        // Build the model architecture based on weight shapes
+        const model = tf.sequential();
+        
+        // Input layer -> Hidden layer 1 (17 -> 32)
+        model.add(tf.layers.dense({
+            units: 32,
+            activation: 'relu',
+            inputShape: [17]
+        }));
+        
+        // Hidden layer 1 -> Hidden layer 2 (32 -> 16)
+        model.add(tf.layers.dense({
+            units: 16,
+            activation: 'relu'
+        }));
+        
+        // Output layer (16 -> 1)
+        model.add(tf.layers.dense({
+            units: 1,
+            activation: 'sigmoid'
+        }));
+
+        // Load weights from the JSON file
+        const weightTensors = [];
+        for (const weightData of modelData.weights) {
+            const tensor = tf.tensor(weightData.values, weightData.shape);
+            weightTensors.push(tensor);
+        }
+        
+        model.setWeights(weightTensors);
+        
+        console.log('✅ TensorFlow model loaded successfully');
+        return model;
+    } catch (error) {
+        console.error('❌ Error loading ML model:', error);
+        return null;
+    }
+}
+
+// Extract 17 features from game state for ML prediction
+function extractGameFeatures(game, aiPlayer, card, targetBase = null) {
+    const enemies = Object.values(game.players).filter(p => p.id !== aiPlayer.id && !p.eliminated);
+    const myTroops = game.troops.filter(t => t.ownerId === aiPlayer.id);
+    const enemyTroops = game.troops.filter(t => t.ownerId !== aiPlayer.id);
+    
+    // Normalize values to 0-1 range
+    const features = [
+        aiPlayer.baseHp / 1000,                                      // 0: My base HP (0-1)
+        aiPlayer.elixir / 15,                                        // 1: My elixir (0-1)
+        card.cost / 15,                                               // 2: Card cost (0-1)
+        card.hp / 2000,                                               // 3: Card HP (normalized)
+        card.damage / 500,                                            // 4: Card damage (normalized)
+        card.speed / 10,                                              // 5: Card speed (normalized)
+        card.range / 9,                                               // 6: Card range (normalized)
+        card.type === 'offense' ? 1 : 0,                             // 7: Is offensive
+        myTroops.length / 30,                                         // 8: My troop count (normalized)
+        myTroops.filter(t => t.type === 'offense').length / 20,     // 9: My offensive troops
+        myTroops.filter(t => t.type === 'defense').length / 10,     // 10: My defensive troops
+        enemyTroops.length / 30,                                      // 11: Enemy troop count
+        enemies.length > 0 ? (enemies[0].baseHp / 1000) : 0,        // 12: Primary enemy HP
+        targetBase ? (targetBase.baseHp / 1000) : 0,                 // 13: Target base HP
+        game.turnNumber / 200,                                        // 14: Game phase (normalized)
+        (Date.now() - game.gameStartTime) / 600000,                  // 15: Game duration (0-10min)
+        enemyTroops.filter(t => {                                     // 16: Nearby threats
+            const dist = Math.abs(t.gridX - aiPlayer.gridX) + Math.abs(t.gridY - aiPlayer.gridY);
+            return dist < 8;
+        }).length / 10
+    ];
+    
+    return features;
+}
+
+// Use ML model to predict card score
+async function predictCardScore(game, aiPlayer, card, targetBase = null) {
+    if (!mlModel) {
+        // Fallback to stats-based scoring if model not loaded
+        const stats = aiStats.cardUsage ? aiStats.cardUsage[card.id] : null;
+        if (stats && stats.played >= 3) {
+            return stats.wins / (stats.wins + stats.losses);
+        }
+        return 0.5;
+    }
+
+    try {
+        const features = extractGameFeatures(game, aiPlayer, card, targetBase);
+        const inputTensor = tf.tensor2d([features], [1, 17]);
+        const prediction = mlModel.predict(inputTensor);
+        const score = (await prediction.data())[0];
+        
+        // Cleanup tensors
+        inputTensor.dispose();
+        prediction.dispose();
+        
+        return score;
+    } catch (error) {
+        console.error('Error predicting card score:', error);
+        return 0.5;
+    }
+}
+
+// Save TensorFlow model weights to ml_model.json
+async function saveMLModel() {
+    try {
+        if (!mlModel) {
+            console.log('⚠️ No model to save');
+            return;
+        }
+
+        const weights = mlModel.getWeights();
+        const weightsData = [];
+        
+        for (const weight of weights) {
+            const values = await weight.data();
+            weightsData.push({
+                shape: weight.shape,
+                values: Array.from(values)
+            });
+        }
+
+        // Load existing metadata
+        let modelData = {};
+        if (fs.existsSync(ML_MODEL_FILE)) {
+            modelData = JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'));
+        }
+
+        // Update with new weights
+        modelData.weights = weightsData;
+        modelData.lastUpdated = Date.now();
+
+        fs.writeFileSync(ML_MODEL_FILE, JSON.stringify(modelData, null, 2), 'utf8');
+        console.log('✅ Model weights saved to ml_model.json');
+    } catch (error) {
+        console.error('❌ Error saving ML model:', error);
+    }
+}
+
+// Train the TensorFlow model with collected game data
+async function trainMLModelWithData(trainingData) {
+    try {
+        if (!mlModel) {
+            console.log('⚠️ Creating new model for training...');
+            // Create new model if not loaded
+            mlModel = tf.sequential();
+            mlModel.add(tf.layers.dense({ units: 32, activation: 'relu', inputShape: [17] }));
+            mlModel.add(tf.layers.dense({ units: 16, activation: 'relu' }));
+            mlModel.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }));
+        }
+
+        // Compile model
+        mlModel.compile({
+            optimizer: tf.train.adam(0.001),
+            loss: 'binaryCrossentropy',
+            metrics: ['accuracy']
+        });
+
+        // Convert training data to tensors
+        const features = trainingData.map(d => d.features);
+        const labels = trainingData.map(d => d.label);
+
+        const xs = tf.tensor2d(features);
+        const ys = tf.tensor2d(labels, [labels.length, 1]);
+
+        // Train the model
+        console.log(`🧠 Training model with ${trainingData.length} samples...`);
+        const history = await mlModel.fit(xs, ys, {
+            epochs: 10,
+            batchSize: 32,
+            verbose: 0,
+            validationSplit: 0.2
+        });
+
+        const finalLoss = history.history.loss[history.history.loss.length - 1];
+        const finalAcc = history.history.acc ? history.history.acc[history.history.acc.length - 1] : 0;
+        
+        console.log(`✅ Training complete - Loss: ${finalLoss.toFixed(4)}, Accuracy: ${(finalAcc * 100).toFixed(1)}%`);
+
+        // Cleanup tensors
+        xs.dispose();
+        ys.dispose();
+
+        // Save updated weights
+        await saveMLModel();
+
+        return { loss: finalLoss, accuracy: finalAcc };
+    } catch (error) {
+        console.error('❌ Error training model:', error);
+        return { loss: 0, accuracy: 0 };
+    }
+}
+
+// Initialize ML model on startup
+loadMLModel().then(model => {
+    mlModel = model;
+}).catch(err => {
+    console.error('Failed to initialize ML model:', err);
+});
+
 // Record game outcome and update statistics
 function recordGameOutcome(gameId, winner) {
     const game = games[gameId];
@@ -291,350 +505,107 @@ function recordGameOutcome(gameId, winner) {
     const isEarlyGame = gameDuration < 120; // Less than 2 minutes
     const isLateGame = gameDuration > 300; // More than 5 minutes
 
-    // Check if there are human players in the game
-    const hasHumanPlayers = Object.values(game.players).some(p => !p.isAI);
-    const aiPlayers = Object.values(game.players).filter(p => p.isAI);
-    const humanPlayers = Object.values(game.players).filter(p => !p.isAI);
+    // Process each AI player's performance
+    Object.values(game.players).forEach(player => {
+        if (!player.isAI) return;
 
-    // For games with humans, only count the final outcome (did AI team beat human team?)
-    // Not individual AI eliminations
-    if (hasHumanPlayers && aiPlayers.length > 0) {
-        // Only record stats once per game (not per AI)
-        const aiWon = winner && winner.isAI;
+        const isWinner = winner && winner.id === player.id;
+        const cardUsage = game.cardUsage[player.id] || {};
 
-        // Update vsHumans stats (once per game)
-        if (!aiStats.vsHumans) {
-            aiStats.vsHumans = { wins: 0, losses: 0, games: 0 };
-        }
-        aiStats.vsHumans.games++;
-
-        if (aiWon) {
-            aiStats.vsHumans.wins++;
+        // Update overall stats
+        aiStats.totalGames++;
+        if (isWinner) {
+            aiStats.wins++;
         } else {
-            aiStats.vsHumans.losses++;
+            aiStats.losses++;
         }
 
-        // Record in game history
-        aiStats.gameHistory.push({
-            gameId,
-            timestamp: Date.now(),
-            duration: gameDuration,
-            winner: winner ? winner.id : null,
-            players: Object.keys(game.players).length,
-            cardUsage: game.cardUsage,
-            aiWon: aiWon,
-            vsHuman: true
-        });
-
-        // Update overall stats for all AIs in the game (they share the outcome)
-        aiPlayers.forEach(player => {
-            const cardUsage = game.cardUsage[player.id] || {};
-
-            aiStats.totalGames++;
-            if (aiWon) {
-                aiStats.wins++;
-            } else {
-                aiStats.losses++;
+        // Update card usage statistics
+        Object.keys(cardUsage).forEach(cardId => {
+            if (!aiStats.cardUsage[cardId]) {
+                aiStats.cardUsage[cardId] = { played: 0, wins: 0, losses: 0, avgDamage: 0 };
             }
 
-            // Update card usage statistics
-            Object.keys(cardUsage).forEach(cardId => {
-                if (!aiStats.cardUsage[cardId]) {
-                    aiStats.cardUsage[cardId] = { played: 0, wins: 0, losses: 0, avgDamage: 0 };
-                }
+            const count = cardUsage[cardId];
+            aiStats.cardUsage[cardId].played += count;
 
-                const count = cardUsage[cardId];
-                aiStats.cardUsage[cardId].played += count;
-
-                if (aiWon) {
-                    aiStats.cardUsage[cardId].wins += count;
-                } else {
-                    aiStats.cardUsage[cardId].losses += count;
-                }
-            });
-
-            // Update strategy statistics
-            const defensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
-                const card = CARDS.find(c => c.id === cardId);
-                return sum + (card && card.type === 'defense' ? cardUsage[cardId] : 0);
-            }, 0);
-
-            const offensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
-                const card = CARDS.find(c => c.id === cardId);
-                return sum + (card && card.type === 'offense' ? cardUsage[cardId] : 0);
-            }, 0);
-
-            if (defensiveCount > offensiveCount) {
-                aiStats.strategyStats.defensivePlays.count++;
-                if (aiWon) {
-                    aiStats.strategyStats.defensivePlays.winRate =
-                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1) + 1) /
-                        aiStats.strategyStats.defensivePlays.count;
-                } else {
-                    aiStats.strategyStats.defensivePlays.winRate =
-                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1)) /
-                        aiStats.strategyStats.defensivePlays.count;
-                }
-            } else if (offensiveCount > defensiveCount) {
-                aiStats.strategyStats.offensivePlays.count++;
-                if (aiWon) {
-                    aiStats.strategyStats.offensivePlays.winRate =
-                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1) + 1) /
-                        aiStats.strategyStats.offensivePlays.count;
-                } else {
-                    aiStats.strategyStats.offensivePlays.winRate =
-                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1)) /
-                        aiStats.strategyStats.offensivePlays.count;
-                }
-            }
-
-            if (isEarlyGame) {
-                aiStats.strategyStats.earlyGame.count++;
-                if (aiWon) aiStats.strategyStats.earlyGame.winRate =
-                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1) + 1) /
-                    aiStats.strategyStats.earlyGame.count;
-                else aiStats.strategyStats.earlyGame.winRate =
-                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1)) /
-                    aiStats.strategyStats.earlyGame.count;
-            }
-
-            if (isLateGame) {
-                aiStats.strategyStats.lateGame.count++;
-                if (aiWon) aiStats.strategyStats.lateGame.winRate =
-                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1) + 1) /
-                    aiStats.strategyStats.lateGame.count;
-                else aiStats.strategyStats.lateGame.winRate =
-                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1)) /
-                    aiStats.strategyStats.lateGame.count;
-            }
-        });
-    } else {
-        // AI vs AI game or no humans - use original logic
-        Object.values(game.players).forEach(player => {
-            if (!player.isAI) return;
-
-            const isWinner = winner && winner.id === player.id;
-            const cardUsage = game.cardUsage[player.id] || {};
-
-            // Update overall stats
-            aiStats.totalGames++;
             if (isWinner) {
-                aiStats.wins++;
+                aiStats.cardUsage[cardId].wins += count;
             } else {
-                aiStats.losses++;
-            }
-
-            // Update card usage statistics
-            Object.keys(cardUsage).forEach(cardId => {
-                if (!aiStats.cardUsage[cardId]) {
-                    aiStats.cardUsage[cardId] = { played: 0, wins: 0, losses: 0, avgDamage: 0 };
-                }
-
-                const count = cardUsage[cardId];
-                aiStats.cardUsage[cardId].played += count;
-
-                if (isWinner) {
-                    aiStats.cardUsage[cardId].wins += count;
-                } else {
-                    aiStats.cardUsage[cardId].losses += count;
-                }
-            });
-
-            // Update strategy statistics
-            const defensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
-                const card = CARDS.find(c => c.id === cardId);
-                return sum + (card && card.type === 'defense' ? cardUsage[cardId] : 0);
-            }, 0);
-
-            const offensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
-                const card = CARDS.find(c => c.id === cardId);
-                return sum + (card && card.type === 'offense' ? cardUsage[cardId] : 0);
-            }, 0);
-
-            if (defensiveCount > offensiveCount) {
-                aiStats.strategyStats.defensivePlays.count++;
-                if (isWinner) {
-                    aiStats.strategyStats.defensivePlays.winRate =
-                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1) + 1) /
-                        aiStats.strategyStats.defensivePlays.count;
-                } else {
-                    aiStats.strategyStats.defensivePlays.winRate =
-                        (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1)) /
-                        aiStats.strategyStats.defensivePlays.count;
-                }
-            } else if (offensiveCount > defensiveCount) {
-                aiStats.strategyStats.offensivePlays.count++;
-                if (isWinner) {
-                    aiStats.strategyStats.offensivePlays.winRate =
-                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1) + 1) /
-                        aiStats.strategyStats.offensivePlays.count;
-                } else {
-                    aiStats.strategyStats.offensivePlays.winRate =
-                        (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1)) /
-                        aiStats.strategyStats.offensivePlays.count;
-                }
-            }
-
-            if (isEarlyGame) {
-                aiStats.strategyStats.earlyGame.count++;
-                if (isWinner) aiStats.strategyStats.earlyGame.winRate =
-                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1) + 1) /
-                    aiStats.strategyStats.earlyGame.count;
-                else aiStats.strategyStats.earlyGame.winRate =
-                    (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1)) /
-                    aiStats.strategyStats.earlyGame.count;
-            }
-
-            if (isLateGame) {
-                aiStats.strategyStats.lateGame.count++;
-                if (isWinner) aiStats.strategyStats.lateGame.winRate =
-                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1) + 1) /
-                    aiStats.strategyStats.lateGame.count;
-                else aiStats.strategyStats.lateGame.winRate =
-                    (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1)) /
-                    aiStats.strategyStats.lateGame.count;
+                aiStats.cardUsage[cardId].losses += count;
             }
         });
 
-        // Record game history for AI vs AI games
-        const aiPlayer = Object.values(game.players).find(p => p.isAI);
-        aiStats.gameHistory.push({
-            gameId,
-            timestamp: Date.now(),
-            duration: gameDuration,
-            winner: winner ? winner.id : null,
-            players: Object.keys(game.players).length,
-            cardUsage: game.cardUsage,
-            aiWon: winner && winner.isAI,
-            vsHuman: false
-        });
-    }
+        // Update strategy statistics
+        const defensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
+            const card = CARDS.find(c => c.id === cardId);
+            return sum + (card && card.type === 'defense' ? cardUsage[cardId] : 0);
+        }, 0);
+
+        const offensiveCount = Object.keys(cardUsage).reduce((sum, cardId) => {
+            const card = CARDS.find(c => c.id === cardId);
+            return sum + (card && card.type === 'offense' ? cardUsage[cardId] : 0);
+        }, 0);
+
+        if (defensiveCount > offensiveCount) {
+            aiStats.strategyStats.defensivePlays.count++;
+            if (isWinner) {
+                aiStats.strategyStats.defensivePlays.winRate =
+                    (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1) + 1) /
+                    aiStats.strategyStats.defensivePlays.count;
+            } else {
+                aiStats.strategyStats.defensivePlays.winRate =
+                    (aiStats.strategyStats.defensivePlays.winRate * (aiStats.strategyStats.defensivePlays.count - 1)) /
+                    aiStats.strategyStats.defensivePlays.count;
+            }
+        } else if (offensiveCount > defensiveCount) {
+            aiStats.strategyStats.offensivePlays.count++;
+            if (isWinner) {
+                aiStats.strategyStats.offensivePlays.winRate =
+                    (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1) + 1) /
+                    aiStats.strategyStats.offensivePlays.count;
+            } else {
+                aiStats.strategyStats.offensivePlays.winRate =
+                    (aiStats.strategyStats.offensivePlays.winRate * (aiStats.strategyStats.offensivePlays.count - 1)) /
+                    aiStats.strategyStats.offensivePlays.count;
+            }
+        }
+
+        if (isEarlyGame) {
+            aiStats.strategyStats.earlyGame.count++;
+            if (isWinner) aiStats.strategyStats.earlyGame.winRate =
+                (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1) + 1) /
+                aiStats.strategyStats.earlyGame.count;
+            else aiStats.strategyStats.earlyGame.winRate =
+                (aiStats.strategyStats.earlyGame.winRate * (aiStats.strategyStats.earlyGame.count - 1)) /
+                aiStats.strategyStats.earlyGame.count;
+        }
+
+        if (isLateGame) {
+            aiStats.strategyStats.lateGame.count++;
+            if (isWinner) aiStats.strategyStats.lateGame.winRate =
+                (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1) + 1) /
+                aiStats.strategyStats.lateGame.count;
+            else aiStats.strategyStats.lateGame.winRate =
+                (aiStats.strategyStats.lateGame.winRate * (aiStats.strategyStats.lateGame.count - 1)) /
+                aiStats.strategyStats.lateGame.count;
+        }
+    });
+
+    // Record game history
+    aiStats.gameHistory.push({
+        gameId,
+        timestamp: Date.now(),
+        duration: gameDuration,
+        winner: winner ? winner.id : null,
+        players: Object.keys(game.players).length,
+        cardUsage: game.cardUsage
+    });
 
     // Save statistics
-    saveAIStats(aiStats);
+        saveAIStats(aiStats);
     console.log(`📊 Updated AI statistics: ${aiStats.wins}/${aiStats.totalGames} wins (${((aiStats.wins / aiStats.totalGames) * 100).toFixed(1)}% win rate)`);
-}
 
-// AI Training Mode - Run multiple AI vs AI games automatically
-let trainingMode = {
-    active: false,
-    currentRound: 0,
-    totalRounds: 0,
-    gamesPerRound: 0,
-    currentGame: 0,
-    trainingRoomId: null,
-    startTime: null,
-    stats: {
-        gamesCompleted: 0,
-        totalDuration: 0,
-        avgGameDuration: 0
-    }
-};
-
-function startAITraining(rounds = 10, gamesPerRound = 1) {
-    if (trainingMode.active) {
-        console.log('⚠️  Training already in progress');
-        return false;
-    }
-
-    trainingMode = {
-        active: true,
-        currentRound: 0,
-        totalRounds: rounds,
-        gamesPerRound: gamesPerRound,
-        currentGame: 0,
-        trainingRoomId: `training_${Date.now()}`,
-        startTime: Date.now(),
-        stats: {
-            gamesCompleted: 0,
-            totalDuration: 0,
-            avgGameDuration: 0
-        }
-    };
-
-    console.log(`🤖 Starting AI Training Mode: ${rounds} rounds, ${gamesPerRound} games per round`);
-    runNextTrainingGame();
-    return true;
-}
-
-function runNextTrainingGame() {
-    if (!trainingMode.active) return;
-
-    if (trainingMode.currentGame >= trainingMode.gamesPerRound) {
-        trainingMode.currentRound++;
-        trainingMode.currentGame = 0;
-
-        if (trainingMode.currentRound >= trainingMode.totalRounds) {
-            finishTraining();
-            return;
-        }
-    }
-
-    trainingMode.currentGame++;
-    const gameId = `${trainingMode.trainingRoomId}_r${trainingMode.currentRound}_g${trainingMode.currentGame}`;
-
-    console.log(`🎮 Training Round ${trainingMode.currentRound + 1}/${trainingMode.totalRounds}, Game ${trainingMode.currentGame}/${trainingMode.gamesPerRound}`);
-
-    // Create a new game with 4 AI players
-    const game = createGame(gameId);
-    game.isTraining = true;
-    games[gameId] = game;
-
-    // Add 4 AI players
-    const positions = [
-        { gridX: 20, gridY: 4, color: '#00BFFF' },
-        { gridX: 36, gridY: 20, color: '#FF4500' },
-        { gridX: 20, gridY: 36, color: '#32CD32' },
-        { gridX: 4, gridY: 20, color: '#FFD700' }
-    ];
-
-    for (let i = 0; i < 4; i++) {
-        const aiId = `training_ai_${gameId}_${i}`;
-        const playerInfo = positions[i];
-        playerInfo.x = playerInfo.gridX * CELL_SIZE + CELL_SIZE / 2;
-        playerInfo.y = playerInfo.gridY * CELL_SIZE + CELL_SIZE / 2;
-
-        const aiHand = getRandomHand();
-        game.players[aiId] = {
-            id: aiId,
-            username: `Training Bot ${i + 1}`,
-            isAI: true,
-            ...playerInfo,
-            baseHp: 1000,
-            elixir: 8,
-            hand: aiHand,
-            nextCard: getBalancedCard(aiHand, 0),
-            eliminated: false
-        };
-    }
-
-    // Start the game
-    game.status = 'playing';
-    game.gameStartTime = Date.now();
-    game.turnOrder = Object.keys(game.players);
-    game.currentTurn = game.turnOrder[0];
-    game.turnStartTime = Date.now();
-    game.turnTimeRemaining = TURN_DURATION;
-    game.turnNumber = 1;
-    game.gameMode = 'turns';
-    game.movementMode = 'automatic';
-
-    startGameLoop(gameId);
-}
-
-function finishTraining() {
-    const duration = Date.now() - trainingMode.startTime;
-    const avgGameTime = trainingMode.stats.gamesCompleted > 0
-        ? trainingMode.stats.totalDuration / trainingMode.stats.gamesCompleted
-        : 0;
-
-    console.log(`✅ AI Training Complete!`);
-    console.log(`   Total Games: ${trainingMode.stats.gamesCompleted}`);
-    console.log(`   Total Time: ${(duration / 1000).toFixed(1)}s`);
-    console.log(`   Avg Game Duration: ${(avgGameTime / 1000).toFixed(1)}s`);
-    console.log(`   Current AI Win Rate: ${aiStats.totalGames > 0 ? ((aiStats.wins / aiStats.totalGames) * 100).toFixed(1) : 0}%`);
-
-    trainingMode.active = false;
 }
 
 // Game State
@@ -789,12 +760,18 @@ function serializeGameState(game) {
 
 // AI Player Logic - Makes AI play intelligently
 // AI Player Logic - Makes AI play intelligently
-function makeAIMoves(gameId, aiPlayerId) {
+async function makeAIMoves(gameId, aiPlayerId) {
     const game = games[gameId];
     if (!game || game.status !== 'playing') return 0;
 
     const aiPlayer = game.players[aiPlayerId];
     if (!aiPlayer || aiPlayer.eliminated || !aiPlayer.isAI) return 0;
+
+    // When ML mode is enabled, we make the bot more decisive and strategic:
+    // - rely more on statistics (less randomness)
+    // - allow a bit more actions per turn
+    // - be more willing to spend elixir when it has a good play
+    const mlMode = !!(game.useMLAI || aiPlayer.useMLAI);
 
     // Analyze Game State
     const enemies = Object.values(game.players).filter(p => p.id !== aiPlayerId && !p.eliminated);
@@ -817,14 +794,16 @@ function makeAIMoves(gameId, aiPlayerId) {
     const primaryThreat = incomingThreats.length > 0 ? incomingThreats[0] : null;
     const isUnderAttack = incomingThreats.length > 0;
 
-    // 2. Elixir Management - More aggressive, less waiting
-    // Spend elixir more freely, but still save a bit for emergencies
-    if (!isUnderAttack && aiPlayer.elixir < 5) {
-        return 0; // Wait for at least 5 elixir when safe (reduced from 9)
+    // 2. Elixir Management - ML is much more aggressive
+    // ML bot: very aggressive, spends quickly
+    // Baseline: more conservative, waits for resources
+    const safeElixirThreshold = mlMode ? 3 : 6;
+    if (!isUnderAttack && aiPlayer.elixir < safeElixirThreshold) {
+        return 0;
     }
 
     let movesThisTurn = 0;
-    const maxMovesPerTurn = 5;
+    const maxMovesPerTurn = mlMode ? 10 : 4;
 
     while (aiPlayer.elixir >= 2 && movesThisTurn < maxMovesPerTurn) {
         // Re-evaluate threats each loop iteration
@@ -845,8 +824,10 @@ function makeAIMoves(gameId, aiPlayerId) {
         const myOffensiveTroops = game.troops.filter(t => t.ownerId === aiPlayerId && t.type === 'offense').length;
         const myDefensiveTroops = game.troops.filter(t => t.ownerId === aiPlayerId && t.type === 'defense').length;
 
-        // Strategic decision using statistics (70% strategy, 30% random)
-        const useStrategy = Math.random() < 0.7;
+        // Strategic decision using statistics
+        // ML mode: 95% strategy / 5% exploration (highly decisive)
+        // Normal mode: 60% strategy / 40% exploration (more random)
+        const useStrategy = Math.random() < (mlMode ? 0.95 : 0.6);
 
         // Use statistics to determine if defensive or offensive strategy is better
         const defensiveWinRate = aiStats.strategyStats.defensivePlays.count > 0
@@ -884,7 +865,7 @@ function makeAIMoves(gameId, aiPlayerId) {
                 // Re-select card for offense
                 const offensiveCards = affordableCards.filter(c => c.type === 'offense');
                 if (offensiveCards.length > 0) {
-                    selectedCard = selectCardByStats(offensiveCards, 'offense');
+                    selectedCard = await selectCardByStats(game, aiPlayer, offensiveCards, 'offense', mlMode, game.players[targetBaseId]);
                 } else {
                     // No offensive cards affordable, skip turn
                     return movesThisTurn;
@@ -894,9 +875,9 @@ function makeAIMoves(gameId, aiPlayerId) {
 
         if (moveType === 'defense') {
             // DEFENSIVE MODE - Use statistics to select best defensive card
-            selectedCard = selectCounterCard(primaryThreat, defensiveCards);
+            selectedCard = await selectCounterCard(game, aiPlayer, primaryThreat, defensiveCards, mlMode);
             // Also consider stats
-            const statsCard = selectCardByStats(defensiveCards, 'defense');
+            const statsCard = await selectCardByStats(game, aiPlayer, defensiveCards, 'defense', mlMode);
             if (statsCard && Math.random() < 0.6) {
                 selectedCard = statsCard; // 60% chance to use stats-based selection
             }
@@ -918,11 +899,11 @@ function makeAIMoves(gameId, aiPlayerId) {
             }
 
             // Use statistics to select best performing offensive card
-            selectedCard = selectCardByStats(offensiveCards, 'offense');
+            selectedCard = await selectCardByStats(game, aiPlayer, offensiveCards, 'offense', mlMode, game.players[targetBaseId]);
             moveType = 'offense';
         } else {
             // RANDOM MODE (30% of the time) - but still use stats for weighting
-            selectedCard = selectCardByStats(affordableCards, null);
+            selectedCard = await selectCardByStats(game, aiPlayer, affordableCards, null, mlMode);
             moveType = selectedCard.type === 'defense' ? 'defense' : 'offense';
 
             if (moveType === 'offense') {
@@ -942,6 +923,42 @@ function makeAIMoves(gameId, aiPlayerId) {
         }
 
         if (!selectedCard) break;
+
+        // Update ML "thought" for this AI player so the client can display it
+        if (game.useMLAI) {
+            if (!game.mlAIInsights) {
+                game.mlAIInsights = {};
+            }
+
+            let score = 0.5;
+            const stats = aiStats && aiStats.cardUsage ? aiStats.cardUsage[selectedCard.id] : null;
+            if (stats && (stats.wins + stats.losses) > 0) {
+                score = clamp(stats.wins / (stats.wins + stats.losses), 0, 1);
+            }
+
+            let reason;
+            if (moveType === 'defense') {
+                reason = primaryThreat
+                    ? `Defending against ${primaryThreat.name || primaryThreat.type || 'threat'}`
+                    : 'Strengthening defenses';
+            } else if (moveType === 'offense') {
+                const targetPlayer = targetBaseId ? game.players[targetBaseId] : null;
+                reason = targetPlayer
+                    ? `Attacking ${targetPlayer.username || 'enemy base'}`
+                    : 'Pushing on offense';
+            } else {
+                reason = 'Adjusting position';
+            }
+
+            game.mlAIInsights[aiPlayerId] = {
+                cardId: selectedCard.id,
+                cardName: selectedCard.name,
+                score,
+                moveType,
+                targetBaseId,
+                reason
+            };
+        }
 
         // Execute Move
         aiPlayer.elixir -= selectedCard.cost;
@@ -1000,8 +1017,9 @@ function makeAIMoves(gameId, aiPlayerId) {
     return movesThisTurn;
 }
 
-// Select card based on historical statistics
-function selectCardByStats(availableCards, preferredType) {
+// Select card based on historical statistics or ML model
+// If mlMode is true, use TensorFlow predictions when available
+async function selectCardByStats(game, aiPlayer, availableCards, preferredType, mlMode = false, targetBase = null) {
     if (availableCards.length === 0) return null;
 
     // Filter by type if specified
@@ -1011,51 +1029,88 @@ function selectCardByStats(availableCards, preferredType) {
 
     if (filteredCards.length === 0) return availableCards[0];
 
-    // Calculate win rates for each card
-    const cardScores = filteredCards.map(card => {
-        const stats = aiStats.cardUsage[card.id];
-        if (!stats || stats.played < 3) {
-            // Not enough data, use base stats
-            return { card, score: 0.5 + Math.random() * 0.2 }; // Slight random preference
-        }
+    // Calculate scores for each card
+    let cardScores;
+    
+    if (mlMode && mlModel) {
+        // ML MODE: Use TensorFlow model predictions
+        cardScores = await Promise.all(filteredCards.map(async (card) => {
+            const score = await predictCardScore(game, aiPlayer, card, targetBase);
+            
+            // Record training data if this is a training game
+            if (game.isTrainingGame && game.trainingData) {
+                const features = extractGameFeatures(game, aiPlayer, card, targetBase);
+                game.trainingData.push({
+                    playerId: aiPlayer.id,
+                    features: features,
+                    cardId: card.id
+                });
+            }
+            
+            return { card, score };
+        }));
+    } else {
+        // BASELINE: Use historical statistics
+        cardScores = filteredCards.map(card => {
+            const stats = aiStats.cardUsage ? aiStats.cardUsage[card.id] : null;
+            if (!stats || stats.played < 3) {
+                // Not enough data, use base stats
+                return { card, score: 0.5 + Math.random() * 0.2 }; // Slight random preference
+            }
 
-        const winRate = stats.wins / (stats.wins + stats.losses);
-        const confidence = Math.min(stats.played / 20, 1); // More confidence with more data
+            const winRate = stats.wins / (stats.wins + stats.losses);
+            const confidence = Math.min(stats.played / 20, 1); // More confidence with more data
 
-        // Score based on win rate, weighted by confidence
-        const score = winRate * confidence + 0.5 * (1 - confidence);
+            // Score based on win rate, weighted by confidence
+            const score = winRate * confidence + 0.5 * (1 - confidence);
 
-        return { card, score };
-    });
+            return { card, score };
+        });
+    }
 
     // Sort by score
     cardScores.sort((a, b) => b.score - a.score);
 
-    // Use top 3 cards with weighted random (70% best, 20% second, 10% third)
-    const topCards = cardScores.slice(0, 3);
-    const rand = Math.random();
+    if (mlMode) {
+        // In ML mode, be extremely decisive:
+        // - 95% use best card, 5% use second best (minimal exploration)
+        const topCards = cardScores.slice(0, 2);
+        const rand = Math.random();
 
-    if (rand < 0.7 && topCards[0]) {
-        return topCards[0].card;
-    } else if (rand < 0.9 && topCards[1]) {
-        return topCards[1].card;
-    } else if (topCards[2]) {
-        return topCards[2].card;
+        if (rand < 0.95 && topCards[0]) {
+            return topCards[0].card;
+        } else if (topCards[1]) {
+            return topCards[1].card;
+        }
+
+        return topCards[0]?.card || filteredCards[0];
+    } else {
+        // Baseline: more random selection (50% best, 30% second, 20% third)
+        const topCards = cardScores.slice(0, 3);
+        const rand = Math.random();
+
+        if (rand < 0.5 && topCards[0]) {
+            return topCards[0].card;
+        } else if (rand < 0.8 && topCards[1]) {
+            return topCards[1].card;
+        } else if (topCards[2]) {
+            return topCards[2].card;
+        }
+
+        return topCards[0]?.card || filteredCards[0];
     }
-
-    return topCards[0]?.card || filteredCards[0];
 }
 
 // Select best card to counter a specific threat (with statistics and randomness)
-function selectCounterCard(threat, availableCards) {
+async function selectCounterCard(game, aiPlayer, threat, availableCards, mlMode = false) {
     if (!threat || availableCards.length === 0) {
         // Use statistics-based selection
-        return selectCardByStats(availableCards, null) || availableCards[Math.floor(Math.random() * availableCards.length)];
+        return await selectCardByStats(game, aiPlayer, availableCards, null, mlMode) || availableCards[Math.floor(Math.random() * availableCards.length)];
     }
 
     // 30% chance to use pure statistics (learned from experience)
     if (Math.random() < 0.3) {
-        return selectCardByStats(availableCards, null);
+        return await selectCardByStats(game, aiPlayer, availableCards, null, mlMode);
     }
 
     // 30% randomness - same as players would have
@@ -1107,7 +1162,7 @@ function selectCounterCard(threat, availableCards) {
         }
     });
 
-    return bestCard || selectCardByStats(availableCards, null) || availableCards[Math.floor(Math.random() * availableCards.length)];
+    return bestCard || await selectCardByStats(game, aiPlayer, availableCards, null, mlMode) || availableCards[Math.floor(Math.random() * availableCards.length)];
 }
 
 // Strategic target selection
@@ -1268,9 +1323,8 @@ function generateTrenchMap() {
         { x: 30, y: 10, name: 'northeast', quadrant: 'ne' },
         { x: 10, y: 30, name: 'southwest', quadrant: 'sw' },
         { x: 30, y: 30, name: 'southeast', quadrant: 'se' },
-        // Two central bridges overlapping at the middle of the map
-        { x: 20, y: 20, name: 'center1', quadrant: 'center' },
-        { x: 20, y: 20, name: 'center2', quadrant: 'center' }
+        { x: 20, y: 20, name: 'center1', quadrant: 'center' }, // First central bridge
+        { x: 20, y: 20, name: 'center2', quadrant: 'center' }  // Second overlapping central bridge
     ];
 
     // Create X-shaped mountain range (diagonals) - make it wider
@@ -1338,8 +1392,7 @@ const CARDS = [
     { id: 'barracuda', name: 'Barracuda', type: 'offense', cost: 3, hp: 130, damage: 40, speed: 6, range: 1, color: '#00CED1' },
     { id: 'orca', name: 'Orca', type: 'offense', cost: 7, hp: 300, damage: 90, speed: 4.6, range: 2, color: '#4B0082' },
     { id: 'mino', name: 'Mino', type: 'offense', cost: 3, hp: 50, damage: 40, speed: 9, range: 1, color: '#FF1493' }, // Extremely fast, meager HP
-    // Leviathan legendary unit with reduced HP for better balance
-    { id: 'leviathan', name: 'Leviathan', type: 'offense', cost: 15, hp: 400, damage: 500, speed: 7, range: 5, color: '#8B00FF', isLegendary: true }, // Legendary: 1% drop rate, better than all other troops combined
+    { id: 'leviathan', name: 'Leviathan', type: 'offense', cost: 15, hp: 2000, damage: 500, speed: 7, range: 5, color: '#8B00FF', isLegendary: true }, // Legendary: 1% drop rate, better than all other troops combined
 
     // DEFENSIVE UNITS (6 total) - More expensive, less HP, can move within territory (except walls) (all speeds +1.0)
     { id: 'crab', name: 'Crab', type: 'defense', cost: 5, hp: 300, damage: 20, speed: 3, range: 3, color: '#FF4500', isWall: false },
@@ -1349,20 +1402,6 @@ const CARDS = [
     { id: 'sea_urchin', name: 'Sea Urchin', type: 'defense', cost: 5, hp: 300, damage: 25, speed: 2.2, range: 2, color: '#8B4789', isWall: false }, // Spiky defender
     { id: 'turret', name: 'Turret', type: 'defense', cost: 8, hp: 10, damage: 7, speed: 0, range: 9, color: '#FF6B35', isWall: false, isTurret: true } // Stationary long-range turret (3/4 of original range)
 ];
-
-// Compute effective damage for a troop, applying global modifiers such as
-// reduced damage for defensive units.
-function getEffectiveDamage(troop) {
-    if (!troop || typeof troop.damage !== 'number') return 0;
-    let damage = troop.damage;
-
-    // Defensive troops deal half damage
-    if (troop.type === 'defense') {
-        damage *= 0.5;
-    }
-
-    return damage;
-}
 
 function createGame(gameId) {
     const terrain = generateTrenchMap();
@@ -1385,7 +1424,11 @@ function createGame(gameId) {
         roomLeader: null, // Socket ID of the room leader
         cardUsage: {}, // Track card usage per player: { playerId: { cardId: count } }
         gameStartTime: null, // Track when game started
-        disconnectedPlayers: {} // Store disconnected player states: { username: { ...playerData, disconnectTime } }
+        disconnectedPlayers: {}, // Store disconnected player states: { username: { ...playerData, disconnectTime } }
+        // ML / TensorFlow-related flags (used by the client UI)
+        useMLAI: false,
+        mlModelLastUpdated: null,
+        mlAIInsights: {} // { [playerId]: { cardId, cardName, score?, moveType?, targetBaseId?, reason? } }
     };
 }
 
@@ -1448,10 +1491,9 @@ io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
     // Clean up rate limit on disconnect
-    // Clean up rate limit on disconnect
     socket.on('disconnect', () => {
         rateLimits.delete(socket.id);
-        console.log('Socket disconnected:', socket.id);
+        console.log('User disconnected:', socket.id);
 
         // Find which game the player was in
         for (const gameId in games) {
@@ -1460,30 +1502,29 @@ io.on('connection', (socket) => {
                 const player = game.players[socket.id];
                 console.log(`Player ${player.username} (${socket.id}) disconnected from game ${gameId}`);
 
-                // Store player state for reconnection (grace period of 2 minutes)
+                // Store player state for potential reconnection
                 if (game.status === 'playing' || game.status === 'waiting') {
                     game.disconnectedPlayers[player.username] = {
                         ...player,
                         disconnectTime: Date.now()
                     };
-                    console.log(`Stored state for disconnected player ${player.username}`);
 
                     // Remove from active players
                     delete game.players[socket.id];
 
-                    // If game is playing, we need to handle their troops/turn
                     if (game.status === 'playing') {
-                        // If it was their turn, auto-end it? Or let time run out?
-                        // Let time run out for now, or nextTurn will handle it if we remove them from turnOrder?
-                        // Better to keep them in turnOrder but maybe skip them if they don't reconnect?
-                        // For now, let's keep it simple: they are removed from active players.
-
-                        // We need to update turnOrder to remove the old socketId
+                        // In an active game, immediately remove from turn order
                         game.turnOrder = game.turnOrder.filter(id => id !== socket.id);
 
                         // If it was their turn, advance to next player
                         if (game.currentTurn === socket.id) {
                             nextTurn(gameId);
+                        }
+                    } else if (game.status === 'waiting') {
+                        // In the lobby, reassign room leader if needed so the room doesn't get stuck
+                        if (game.roomLeader === socket.id) {
+                            const remainingIds = Object.keys(game.players);
+                            game.roomLeader = remainingIds.length > 0 ? remainingIds[0] : null;
                         }
                     }
 
@@ -1495,7 +1536,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('joinGame', (data) => {
-        console.log('Join request from:', socket.id, data);
         // Rate limiting
         if (!checkRateLimit(socket.id)) {
             socket.emit('error', 'Too many requests. Please slow down.');
@@ -1709,6 +1749,32 @@ io.on('connection', (socket) => {
                 return;
             }
             game.aiPlayerCount = newAICount;
+        }
+
+        // Toggle TensorFlow / ML-based AI
+        if (typeof settings.useMLAI === 'boolean') {
+            game.useMLAI = settings.useMLAI;
+
+            if (settings.useMLAI) {
+                // When enabling ML, attempt to read the model metadata so the
+                // client can display a meaningful "last updated" timestamp.
+                try {
+                    if (fs.existsSync(ML_MODEL_FILE)) {
+                        const raw = fs.readFileSync(ML_MODEL_FILE, 'utf8');
+                        const parsed = JSON.parse(raw);
+                        if (parsed && typeof parsed.lastUpdated === 'number') {
+                            game.mlModelLastUpdated = parsed.lastUpdated;
+                        } else {
+                            game.mlModelLastUpdated = Date.now();
+                        }
+                    } else {
+                        // Model file not present yet – keep timestamp null so UI shows "Pending training"
+                        game.mlModelLastUpdated = null;
+                    }
+                } catch (err) {
+                    console.error('Error reading ML model metadata:', err);
+                }
+            }
         }
 
         io.to(gameId).emit('gameState', serializeGameState(game));
@@ -2007,12 +2073,6 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Prevent moving into an occupied square
-        if (isPositionOccupied(game, targetGridX, targetGridY, troopId)) {
-            socket.emit('error', 'Cannot move onto another troop');
-            return;
-        }
-
         // Store old position for defensive troop damage check
         const oldGridX = troop.gridX;
         const oldGridY = troop.gridY;
@@ -2221,91 +2281,9 @@ io.on('connection', (socket) => {
         io.to(gameId).emit('gameState', serializeGameState(game));
     });
 
-    socket.on('disconnect', () => {
-        console.log('User disconnected:', socket.id);
-        for (const gameId in games) {
-            const game = games[gameId];
-            if (game.players[socket.id]) {
-                const player = game.players[socket.id];
-                console.log(`Player ${player.username} (${socket.id}) disconnected, removing from game`);
-
-                // Remove troops owned by this player
-                game.troops = game.troops.filter(t => t.ownerId !== socket.id);
-
-                // Remove player from game
-                delete game.players[socket.id];
-
-                // If in lobby, just notify
-                if (game.status === 'waiting') {
-                    // If room leader left, assign new leader
-                    if (game.roomLeader === socket.id) {
-                        const remainingIds = Object.keys(game.players);
-                        if (remainingIds.length > 0) {
-                            game.roomLeader = remainingIds[0];
-                        } else {
-                            game.roomLeader = null;
-                        }
-                    }
-                    io.to(gameId).emit('gameState', serializeGameState(game));
-                }
-                // If playing, handle turn logic and game over
-                else if (game.status === 'playing') {
-                    // Remove from turn order
-                    const turnIndex = game.turnOrder.indexOf(socket.id);
-                    if (turnIndex !== -1) {
-                        game.turnOrder.splice(turnIndex, 1);
-                    }
-
-                    // Check for game over (0 or 1 player left)
-                    const remainingPlayers = Object.values(game.players);
-                    if (remainingPlayers.length <= 1) {
-                        game.status = 'ended';
-                        const winner = remainingPlayers.length === 1 ? remainingPlayers[0] : null;
-                        io.to(gameId).emit('gameOver', {
-                            winner: winner ? winner.id : null,
-                            winnerName: winner ? winner.username : null
-                        });
-
-                        // Record game outcome for AI learning
-                        recordGameOutcome(gameId, winner);
-
-                        // Reset room after 10 seconds
-                        setTimeout(() => {
-                            resetGame(gameId);
-                        }, 10000);
-                    } else {
-                        // If it was their turn, advance to next player
-                        if (game.currentTurn === socket.id) {
-                            // Since we removed them from turnOrder, the "next" index is actually the same index (or 0 if at end)
-                            // But nextTurn logic relies on finding currentTurn in turnOrder.
-                            // Since currentTurn (socket.id) is gone, we need to pick a new currentTurn manually.
-
-                            // Simple fix: pick the player at the same index, or wrap around
-                            let nextIndex = turnIndex;
-                            if (nextIndex >= game.turnOrder.length) {
-                                nextIndex = 0;
-                            }
-
-                            if (game.turnOrder.length > 0) {
-                                game.currentTurn = game.turnOrder[nextIndex];
-                                game.turnStartTime = Date.now();
-                                game.turnTimeRemaining = TURN_DURATION;
-                                game.turnNumber++;
-
-                                // Trigger AI if next player is AI
-                                const nextPlayer = game.players[game.currentTurn];
-                                if (nextPlayer && nextPlayer.isAI) {
-                                    setTimeout(() => makeAIMoves(gameId, nextPlayer.id), 200); // Faster AI response
-                                }
-                            }
-                        }
-
-                        io.to(gameId).emit('gameState', serializeGameState(game));
-                    }
-                }
-            }
-        }
-    });
+    // Note: additional disconnect handling (game cleanup, AI stats, etc.)
+    // is now centralized in this single handler above. Previous duplicate
+    // disconnect logic has been removed to avoid conflicting behavior.
 });
 
 function isPassable(x, y, trenchSet) {
@@ -2339,9 +2317,7 @@ function isOnCentralBridge(x, y) {
 }
 
 // A* pathfinding with bridge preference
-// Optionally accepts a set of blocked positions (e.g. other troops) that should
-// be treated as impassable so units "search harder" for alternative routes.
-function findPath(startX, startY, endX, endY, trenchSet, bridges = null, blockedPositions = null) {
+function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
     const openSet = [];
     const closedSet = new Set();
     const cameFrom = new Map();
@@ -2387,12 +2363,6 @@ function findPath(startX, startY, endX, endY, trenchSet, bridges = null, blocked
 
             if (closedSet.has(neighborKey)) continue;
             if (!isPassable(neighbor.x, neighbor.y, trenchSet)) continue;
-
-            // Avoid stepping onto other troops if a blockedPositions set is provided.
-            // Allow stepping onto the exact end tile so units can still reach their goal.
-            if (blockedPositions && blockedPositions.has(neighborKey) && neighborKey !== endKey) {
-                continue;
-            }
 
             // Calculate base movement cost
             let movementCost = 1;
@@ -2563,18 +2533,24 @@ function nextTurn(gameId) {
         if (currentPlayer.isAI) {
             console.log(`🤖 AI ${currentPlayer.username}'s turn - Elixir: ${currentPlayer.elixir}, Hand: ${currentPlayer.hand?.length || 0} cards`);
             console.log(`🤖 AI ${currentPlayer.username} is making moves...`);
-            const movesMade = makeAIMoves(gameId, currentPlayer.id);
+            
+            // Make AI moves asynchronously
+            makeAIMoves(gameId, currentPlayer.id).then(movesMade => {
+                // AI takes only 100ms per turn for very fast gameplay
+                const animationTime = 100;
+                console.log(`🤖 AI ${currentPlayer.username} made ${movesMade} moves, waiting ${animationTime}ms`);
 
-            // AI takes only 100ms per turn for very fast gameplay
-            const animationTime = 100;
-            console.log(`🤖 AI ${currentPlayer.username} made ${movesMade} moves, waiting ${animationTime}ms`);
-
-            setTimeout(() => {
-                if (games[gameId] && games[gameId].currentTurn === currentPlayer.id) {
-                    console.log(`🤖 AI ${currentPlayer.username} ending turn`);
-                    nextTurn(gameId);
-                }
-            }, animationTime);
+                setTimeout(() => {
+                    if (games[gameId] && games[gameId].currentTurn === currentPlayer.id) {
+                        console.log(`🤖 AI ${currentPlayer.username} ending turn`);
+                        nextTurn(gameId);
+                    }
+                }, animationTime);
+            }).catch(err => {
+                console.error(`Error in AI moves for ${currentPlayer.username}:`, err);
+                // Still advance turn on error
+                setTimeout(() => nextTurn(gameId), 100);
+            });
         }
     }
 
@@ -2594,8 +2570,7 @@ function applyCombatDamage(game, gameId) {
 
                 // If adjacent to base, deal damage
                 if (dist <= troop.range + 1) {
-                    const damage = getEffectiveDamage(troop);
-                    targetBase.baseHp -= damage;
+                    targetBase.baseHp -= troop.damage;
 
                     if (targetBase.baseHp <= 0) {
                         targetBase.baseHp = 0;
@@ -2628,8 +2603,7 @@ function applyCombatDamage(game, gameId) {
 
             const dist = Math.abs(other.gridX - troop.gridX) + Math.abs(other.gridY - troop.gridY);
             if (dist <= troop.range) {
-                const damage = getEffectiveDamage(troop);
-                other.hp -= damage;
+                other.hp -= troop.damage;
 
                 // Special handling for turrets - emit projectile event
                 if (troop.isTurret) {
@@ -2637,7 +2611,7 @@ function applyCombatDamage(game, gameId) {
                         type: 'projectile',
                         attackerId: troop.id,
                         targetId: other.id,
-                        damage,
+                        damage: troop.damage,
                         fromX: troop.x,
                         fromY: troop.y,
                         toX: other.x,
@@ -2649,7 +2623,7 @@ function applyCombatDamage(game, gameId) {
                         type: 'attack',
                         attackerId: troop.id,
                         targetId: other.id,
-                        damage,
+                        damage: troop.damage,
                         x: other.x,
                         y: other.y,
                         isBase: false
@@ -2734,6 +2708,69 @@ function getBridgeForPath(fromBase, toBase, bridges) {
     }
 }
 
+// Get TWO bridge options for multi-path attack on neighboring bases
+function getTwoBridgesForNeighbor(fromBase, toBase, bridges) {
+    const fromX = fromBase.gridX;
+    const fromY = fromBase.gridY;
+    const toX = toBase.gridX;
+    const toY = toBase.gridY;
+    
+    // Identify which two bridges connect the bases
+    // Top base (20, 4) can connect to:
+    //   - Right (36, 20) via NE or Center
+    //   - Bottom (20, 36) via NW+SW or NE+SE
+    //   - Left (4, 20) via NW or Center
+    
+    // Right base (36, 20) can connect to:
+    //   - Top (20, 4) via NE or Center
+    //   - Bottom (20, 36) via SE or Center
+    //   - Left (4, 20) via NW+NE or SW+SE
+    
+    // Bottom base (20, 36) can connect to:
+    //   - Top (20, 4) via SW+NW or SE+NE
+    //   - Right (36, 20) via SE or Center
+    //   - Left (4, 20) via SW or Center
+    
+    // Left base (4, 20) can connect to:
+    //   - Top (20, 4) via NW or Center
+    //   - Right (36, 20) via NE+NW or SE+SW
+    //   - Bottom (20, 36) via SW or Center
+    
+    const center = bridges.find(b => b.quadrant === 'center');
+    const nw = bridges.find(b => b.quadrant === 'nw');
+    const ne = bridges.find(b => b.quadrant === 'ne');
+    const sw = bridges.find(b => b.quadrant === 'sw');
+    const se = bridges.find(b => b.quadrant === 'se');
+    
+    // Top to Right or Right to Top
+    if ((fromY < 10 && toX > 30) || (fromX > 30 && toY < 10)) {
+        return [ne, center];
+    }
+    // Top to Left or Left to Top
+    if ((fromY < 10 && toX < 10) || (fromX < 10 && toY < 10)) {
+        return [nw, center];
+    }
+    // Bottom to Right or Right to Bottom
+    if ((fromY > 30 && toX > 30) || (fromX > 30 && toY > 30)) {
+        return [se, center];
+    }
+    // Bottom to Left or Left to Bottom
+    if ((fromY > 30 && toX < 10) || (fromX < 10 && toY > 30)) {
+        return [sw, center];
+    }
+    // Top to Bottom or Bottom to Top (opposite sides)
+    if ((fromY < 10 && toY > 30) || (fromY > 30 && toY < 10)) {
+        return [nw, ne]; // Use both top bridges or both bottom bridges
+    }
+    // Left to Right or Right to Left (opposite sides)
+    if ((fromX < 10 && toX > 30) || (fromX > 30 && toX < 10)) {
+        return [nw, sw]; // Use both left bridges or both right bridges
+    }
+    
+    // Fallback: use center and closest corner bridge
+    return [center, nw];
+}
+
 // Helper function to check if troops are in same quadrant
 // Check if a troop is in range of defensive troops and apply damage if moving away
 function applyDefensiveTroopDamage(game, movingTroop, oldGridX, oldGridY, newGridX, newGridY) {
@@ -2763,9 +2800,8 @@ function applyDefensiveTroopDamage(game, movingTroop, oldGridX, oldGridY, newGri
 
             // If moving away (distance increased), apply damage
             if (newDistance > oldDistance) {
-                // Apply damage (defensive troops deal reduced damage via helper)
-                const damage = getEffectiveDamage(defensiveTroop);
-                movingTroop.hp = Math.max(0, movingTroop.hp - damage);
+                // Apply damage
+                movingTroop.hp = Math.max(0, movingTroop.hp - defensiveTroop.damage);
 
                 // Remove troop if dead
                 if (movingTroop.hp <= 0) {
@@ -2876,14 +2912,6 @@ function isInSameQuadrant(troop1, troop2, basePlayer) {
 
 function moveTroopsOnTurnEnd(game, aiOnly = false) {
     const trenchSet = new Set(game.terrain.trench.map(t => `${t.x},${t.y}`));
-
-    // Track occupied squares to prevent multiple troops in the same cell.
-    const occupiedPositions = new Set();
-    game.troops.forEach(t => {
-        if (t && typeof t.gridX === 'number' && typeof t.gridY === 'number') {
-            occupiedPositions.add(`${t.gridX},${t.gridY}`);
-        }
-    });
 
     game.troops.forEach(troop => {
         // In manual mode with aiOnly=true, only move AI-owned troops
@@ -3042,25 +3070,51 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
         if (!troop.path || troop.path.length === 0) {
             // Pass bridge information to pathfinding for strict bridge following
             const bridges = game.terrain.bridges || [];
-            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
-
-            // Check if target is a neighboring player base
             const ownerBase = game.players[troop.ownerId];
             const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
 
-            // Only route through center bridge if NOT attacking a neighboring tower
-            if (game.movementMode === 'automatic' && !targetIsNeighboring && Math.random() < 0.3 && path.length > 0) {
-                // Try routing through center bridge
-                const centerX = 20;
-                const centerY = 20;
-                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges, occupiedPositions);
-                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
 
-                if (path1.length > 0 && path2.length > 0) {
-                    // Use center route if it's not too much longer (within 50% of direct path)
-                    const centerPathLength = path1.length + path2.length;
-                    if (centerPathLength <= path.length * 1.5) {
+            // SPLIT ATTACK: For neighboring bases, alternate troops between two bridge paths
+            if (targetIsNeighboring) {
+                const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
+                
+                // Assign this troop a path index if it doesn't have one
+                if (troop.attackPathIndex === undefined) {
+                    // Count existing troops attacking this target to alternate paths
+                    const troopsOnTarget = game.troops.filter(t => 
+                        t.ownerId === troop.ownerId && 
+                        t.targetBaseId === troop.targetBaseId && 
+                        t.id !== troop.id
+                    );
+                    troop.attackPathIndex = troopsOnTarget.length % 2; // Alternate 0, 1, 0, 1...
+                }
+                
+                // Route through the assigned bridge
+                const bridgeToUse = twoBridges[troop.attackPathIndex];
+                if (bridgeToUse) {
+                    const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
+                    const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
+                    
+                    if (path1.length > 0 && path2.length > 0) {
                         path = [...path1, ...path2];
+                    }
+                }
+            } else {
+                // Non-neighboring attack: sometimes use center bridge for variety
+                if (game.movementMode === 'automatic' && Math.random() < 0.3 && path.length > 0) {
+                    // Try routing through center bridge
+                    const centerX = 20;
+                    const centerY = 20;
+                    const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
+                    const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
+
+                    if (path1.length > 0 && path2.length > 0) {
+                        // Use center route if it's not too much longer (within 50% of direct path)
+                        const centerPathLength = path1.length + path2.length;
+                        if (centerPathLength <= path.length * 1.5) {
+                            path = [...path1, ...path2];
+                        }
                     }
                 }
             }
@@ -3072,26 +3126,6 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
         for (let i = 0; i < movesPerTurn && troop.path && troop.path.length > 0; i++) {
             const nextStep = troop.path[0];
 
-            // Prevent multiple troops ending up on the same square:
-            // if the next step is currently occupied (by another troop or
-            // by a troop that has already moved this tick), try to find an
-            // alternative route that avoids occupied squares before giving up.
-            const nextKey = `${nextStep.x},${nextStep.y}`;
-            const currentKey = `${troop.gridX},${troop.gridY}`;
-            const occupiedByOther = occupiedPositions.has(nextKey) && nextKey !== currentKey;
-            if (occupiedByOther) {
-                // Recalculate path avoiding currently occupied squares
-                const bridges = game.terrain.bridges || [];
-                const newPath = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
-                if (!newPath || newPath.length === 0) {
-                    // No alternative path found; this unit can't move this tick
-                    break;
-                }
-                troop.path = newPath;
-                // Restart this step with the new path
-                continue;
-            }
-
             // Store old position for defensive troop damage check
             const oldGridX = troop.gridX;
             const oldGridY = troop.gridY;
@@ -3099,10 +3133,9 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             // Check if moving away from defensive troops and apply damage
             applyDefensiveTroopDamage(game, troop, oldGridX, oldGridY, nextStep.x, nextStep.y);
 
-            // If troop died from defensive damage, stop moving and free the old cell
+            // If troop died from defensive damage, stop moving
             const troopStillExists = game.troops.find(t => t.id === troop.id);
             if (!troopStillExists) {
-                occupiedPositions.delete(`${oldGridX},${oldGridY}`);
                 break;
             }
 
@@ -3111,10 +3144,6 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             troop.gridY = nextStep.y;
             troop.x = troop.gridX * CELL_SIZE + CELL_SIZE / 2;
             troop.y = troop.gridY * CELL_SIZE + CELL_SIZE / 2;
-
-            // Update occupied positions set
-            occupiedPositions.delete(`${oldGridX},${oldGridY}`);
-            occupiedPositions.add(nextKey);
 
             // Remove this step from path
             troop.path.shift();
@@ -3125,20 +3154,30 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                 if (dist > 1) {
                     // Pass bridge information to pathfinding for strict bridge following
                     const bridges = game.terrain.bridges || [];
-
-                    // Check if target is a neighboring player base
                     const ownerBase = game.players[troop.ownerId];
                     const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
 
-                    // Only route through center bridge if NOT attacking a neighboring tower
-                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
 
-                    if (game.movementMode === 'automatic' && !targetIsNeighboring && Math.random() < 0.3 && path.length > 0) {
-                        // Try routing through center bridge
+                    // SPLIT ATTACK: For neighboring bases, use assigned bridge path
+                    if (targetIsNeighboring && troop.attackPathIndex !== undefined) {
+                        const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
+                        const bridgeToUse = twoBridges[troop.attackPathIndex];
+                        
+                        if (bridgeToUse) {
+                            const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
+                            const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
+                            
+                            if (path1.length > 0 && path2.length > 0) {
+                                path = [...path1, ...path2];
+                            }
+                        }
+                    } else if (!targetIsNeighboring && game.movementMode === 'automatic' && Math.random() < 0.3 && path.length > 0) {
+                        // Non-neighboring: sometimes use center bridge
                         const centerX = 20;
                         const centerY = 20;
-                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges, occupiedPositions);
-                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges, occupiedPositions);
+                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
+                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
 
                         if (path1.length > 0 && path2.length > 0) {
                             // Use center route if it's not too much longer (within 50% of direct path)
@@ -3241,7 +3280,7 @@ function startGameLoop(gameId) {
 
 // Schedule AI actions for live mode - instant response, no delays
 function scheduleAIAction(gameId, aiPlayerId) {
-    const makeMove = () => {
+    const makeMove = async () => {
         const game = games[gameId];
         if (!game || game.status !== 'playing') return;
 
@@ -3250,7 +3289,11 @@ function scheduleAIAction(gameId, aiPlayerId) {
 
         // AI makes moves in live mode instantly when they have elixir
         if (game.gameMode === 'live' && aiPlayer.elixir >= 2) {
-            makeAIMoves(gameId, aiPlayerId);
+            try {
+                await makeAIMoves(gameId, aiPlayerId);
+            } catch (err) {
+                console.error(`Error in live mode AI moves:`, err);
+            }
         }
 
         // Check again very quickly (every 200ms) - AI acts as soon as they have elixir
@@ -3262,6 +3305,404 @@ function scheduleAIAction(gameId, aiPlayerId) {
     // Start immediately with no initial delay
     makeMove();
 }
+
+// ============================================================================
+// ML TRAINING SYSTEM: Self-Play Training Engine
+// ============================================================================
+
+// Training state
+let trainingState = {
+    isRunning: false,
+    totalGames: 0,
+    gamesCompleted: 0,
+    mlWins: 0,
+    baselineWins: 0,
+    history: [], // { step, timestamp, mlWinRate, baselineWinRate, gamesInBlock }
+    trainingDataBuffer: [] // Collects training samples during games
+};
+
+// Run a single hidden self-play training game (ML vs baseline AI)
+async function runTrainingGame() {
+    return new Promise((resolve) => {
+        const trainingGameId = `training_${Date.now()}_${Math.random()}`;
+        const game = createGame(trainingGameId);
+        game.isTrainingGame = true; // Mark as training game
+        game.trainingData = []; // Store decisions made during this game
+        
+        // Set game to playing immediately (no lobby)
+        game.status = 'playing';
+        game.gameStartTime = Date.now();
+        game.gameMode = 'turns';
+        game.movementMode = 'automatic';
+        
+        // Add two AI players: one with ML mode, one baseline
+        const positions = [
+            { gridX: 20, gridY: 4, color: '#00BFFF' },   // Top
+            { gridX: 20, gridY: 36, color: '#32CD32' }  // Bottom
+        ];
+        
+        // ML AI player
+        const mlAiId = 'ml_ai';
+        game.players[mlAiId] = {
+            id: mlAiId,
+            username: 'ML Bot',
+            isAI: true,
+            useMLAI: true, // Enable ML mode
+            ...positions[0],
+            x: positions[0].gridX * CELL_SIZE + CELL_SIZE / 2,
+            y: positions[0].gridY * CELL_SIZE + CELL_SIZE / 2,
+            baseHp: 1000,
+            elixir: 8,
+            hand: getRandomHand(),
+            eliminated: false
+        };
+        game.players[mlAiId].nextCard = getBalancedCard(game.players[mlAiId].hand, 0);
+        
+        // Baseline AI player
+        const baselineAiId = 'baseline_ai';
+        game.players[baselineAiId] = {
+            id: baselineAiId,
+            username: 'Baseline Bot',
+            isAI: true,
+            useMLAI: false, // Normal mode
+            ...positions[1],
+            x: positions[1].gridX * CELL_SIZE + CELL_SIZE / 2,
+            y: positions[1].gridY * CELL_SIZE + CELL_SIZE / 2,
+            baseHp: 1000,
+            elixir: 8,
+            hand: getRandomHand(),
+            eliminated: false
+        };
+        game.players[baselineAiId].nextCard = getBalancedCard(game.players[baselineAiId].hand, 0);
+        
+        // Set turn order
+        game.turnOrder = [mlAiId, baselineAiId];
+        game.currentTurn = game.turnOrder[0];
+        game.turnStartTime = Date.now();
+        game.turnTimeRemaining = TURN_DURATION;
+        game.turnNumber = 1;
+        
+        // Store the game temporarily
+        games[trainingGameId] = game;
+        
+        // Fast-forward game loop (no graphics, accelerated turns)
+        const maxTurns = 200; // Increased limit to allow games to finish
+        let turnCount = 0;
+        
+        const gameInterval = setInterval(async () => {
+            const g = games[trainingGameId];
+            if (!g || g.status !== 'playing') {
+                clearInterval(gameInterval);
+                
+                // Determine winner
+                const activePlayers = Object.values(game.players).filter(p => !p.eliminated);
+                const winner = activePlayers.length === 1 ? activePlayers[0] : null;
+                
+                // Label training data based on outcome
+                const mlWon = winner && winner.id === mlAiId;
+                const baselineWon = winner && winner.id === baselineAiId;
+                
+                if (game.trainingData && game.trainingData.length > 0) {
+                    game.trainingData.forEach(sample => {
+                        // Label: 1 if the player who made this decision won, 0 if lost, 0.5 if draw
+                        let label = 0.5;
+                        if (sample.playerId === mlAiId) {
+                            label = mlWon ? 1 : (baselineWon ? 0 : 0.5);
+                        } else if (sample.playerId === baselineAiId) {
+                            label = baselineWon ? 1 : (mlWon ? 0 : 0.5);
+                        }
+                        
+                        // Only add non-draw samples for ML player
+                        if (sample.playerId === mlAiId && label !== 0.5) {
+                            trainingState.trainingDataBuffer.push({
+                                features: sample.features,
+                                label: label
+                            });
+                        }
+                    });
+                }
+                
+                // Clean up
+                delete games[trainingGameId];
+                
+                resolve({
+                    mlWon: mlWon,
+                    baselineWon: baselineWon,
+                    draw: !winner,
+                    turns: turnCount
+                });
+                return;
+            }
+            
+            // Fast turn simulation
+            const currentPlayer = g.players[g.currentTurn];
+            if (currentPlayer && currentPlayer.isAI) {
+                try {
+                    await makeAIMoves(trainingGameId, currentPlayer.id);
+                } catch (err) {
+                    console.error('Error in training game AI moves:', err);
+                }
+            }
+            
+            // Apply combat
+            applyCombatDamage(g, trainingGameId);
+            
+            // Move troops
+            moveTroopsOnTurnEnd(g, false);
+            
+            // Check for winner
+            const activePlayers = Object.values(g.players).filter(p => !p.eliminated);
+            if (activePlayers.length <= 1) {
+                g.status = 'ended';
+                clearInterval(gameInterval);
+                
+                const winner = activePlayers.length === 1 ? activePlayers[0] : null;
+                
+                // Label training data based on outcome
+                const mlWon = winner && winner.id === mlAiId;
+                const baselineWon = winner && winner.id === baselineAiId;
+                
+                if (g.trainingData && g.trainingData.length > 0) {
+                    g.trainingData.forEach(sample => {
+                        let label = 0.5;
+                        if (sample.playerId === mlAiId) {
+                            label = mlWon ? 1 : (baselineWon ? 0 : 0.5);
+                        } else if (sample.playerId === baselineAiId) {
+                            label = baselineWon ? 1 : (mlWon ? 0 : 0.5);
+                        }
+                        
+                        // Only add non-draw samples for ML player
+                        if (sample.playerId === mlAiId && label !== 0.5) {
+                            trainingState.trainingDataBuffer.push({
+                                features: sample.features,
+                                label: label
+                            });
+                        }
+                    });
+                }
+                
+                delete games[trainingGameId];
+                
+                resolve({
+                    mlWon: mlWon,
+                    baselineWon: baselineWon,
+                    draw: !winner,
+                    turns: turnCount
+                });
+                return;
+            }
+            
+            // Advance turn
+            turnCount++;
+            if (turnCount >= maxTurns) {
+                // Force end on timeout
+                g.status = 'ended';
+                clearInterval(gameInterval);
+                delete games[trainingGameId];
+                
+                resolve({
+                    mlWon: false,
+                    baselineWon: false,
+                    draw: true,
+                    turns: turnCount
+                });
+                return;
+            }
+            
+            // Next turn
+            const currentIndex = g.turnOrder.indexOf(g.currentTurn);
+            const nextIndex = (currentIndex + 1) % g.turnOrder.length;
+            g.currentTurn = g.turnOrder[nextIndex];
+            g.turnStartTime = Date.now();
+            g.turnNumber++;
+            
+            // Give elixir
+            const nextPlayer = g.players[g.currentTurn];
+            if (nextPlayer) {
+                nextPlayer.elixir = clamp((nextPlayer.elixir || 0) + 6, 0, 15);
+            }
+        }, 50); // Fast simulation: 50ms per turn
+    });
+}
+
+// Run training loop
+async function runTrainingLoop() {
+    console.log(`🧠 ML Training started: ${trainingState.totalGames} games`);
+    
+    const blockSize = 10; // Report progress every 10 games
+    
+    for (let i = 0; i < trainingState.totalGames; i++) {
+        if (!trainingState.isRunning) {
+            console.log('🛑 Training stopped by user');
+            break;
+        }
+        
+        try {
+            const result = await runTrainingGame();
+            
+            if (result.mlWon) trainingState.mlWins++;
+            if (result.baselineWon) trainingState.baselineWins++;
+            trainingState.gamesCompleted++;
+            
+            // Log each game result
+            console.log(`Game ${trainingState.gamesCompleted}: ${result.mlWon ? 'ML WIN' : result.baselineWon ? 'BASELINE WIN' : 'DRAW'} (${result.turns} turns)`);
+            
+            // Report progress every block
+            if (trainingState.gamesCompleted % blockSize === 0) {
+                const mlWinRate = trainingState.mlWins / trainingState.gamesCompleted;
+                const baselineWinRate = trainingState.baselineWins / trainingState.gamesCompleted;
+                
+                // TRAIN THE MODEL with collected data
+                let trainingResult = null;
+                if (trainingState.trainingDataBuffer.length >= 50) {
+                    console.log(`🎓 Training neural network with ${trainingState.trainingDataBuffer.length} samples...`);
+                    trainingResult = await trainMLModelWithData(trainingState.trainingDataBuffer);
+                    
+                    // Clear buffer after training
+                    trainingState.trainingDataBuffer = [];
+                }
+                
+                trainingState.history.push({
+                    step: trainingState.gamesCompleted,
+                    timestamp: Date.now(),
+                    mlWinRate,
+                    baselineWinRate,
+                    gamesInBlock: blockSize,
+                    trainLoss: trainingResult ? trainingResult.loss : null,
+                    trainAccuracy: trainingResult ? trainingResult.accuracy : null
+                });
+                
+                console.log(`📊 Training progress: ${trainingState.gamesCompleted}/${trainingState.totalGames} | ML: ${(mlWinRate * 100).toFixed(1)}% | Baseline: ${(baselineWinRate * 100).toFixed(1)}%`);
+                if (trainingResult) {
+                    console.log(`   Neural net trained - Loss: ${trainingResult.loss.toFixed(4)}, Acc: ${(trainingResult.accuracy * 100).toFixed(1)}%`);
+                }
+                
+                // Update model metadata after each block
+                try {
+                    const modelData = fs.existsSync(ML_MODEL_FILE) 
+                        ? JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'))
+                        : {};
+                    
+                    modelData.lastUpdated = Date.now();
+                    modelData.sampleCount = (modelData.sampleCount || 0) + blockSize;
+                    modelData.mlWinRate = mlWinRate;
+                    modelData.baselineWinRate = baselineWinRate;
+                    modelData.trainingGames = trainingState.gamesCompleted;
+                    
+                    // Note: Weights are already saved by saveMLModel() after training
+                    fs.writeFileSync(ML_MODEL_FILE, JSON.stringify(modelData, null, 2), 'utf8');
+                } catch (err) {
+                    console.error('Error updating model file:', err);
+                }
+            }
+        } catch (err) {
+            console.error('Training game error:', err);
+        }
+    }
+    
+    trainingState.isRunning = false;
+    console.log(`✅ Training completed: ${trainingState.gamesCompleted} games | ML: ${trainingState.mlWins} wins | Baseline: ${trainingState.baselineWins} wins`);
+}
+
+// Socket endpoints for training control
+io.on('connection', (socket) => {
+    socket.on('startMLTraining', ({ games: numGames }) => {
+        if (!checkRateLimit(socket.id)) return;
+        
+        if (trainingState.isRunning) {
+            socket.emit('error', 'Training is already running');
+            return;
+        }
+        
+        const gamesToRun = Math.min(Math.max(1, parseInt(numGames) || 100), 1000); // Limit 1-1000
+        
+        trainingState = {
+            isRunning: true,
+            totalGames: gamesToRun,
+            gamesCompleted: 0,
+            mlWins: 0,
+            baselineWins: 0,
+            history: [],
+            trainingDataBuffer: []
+        };
+        
+        socket.emit('trainingStarted', { games: gamesToRun });
+        console.log(`🚀 Training started by ${socket.id}: ${gamesToRun} games`);
+        
+        // Run training in background
+        runTrainingLoop().catch(err => {
+            console.error('Training loop error:', err);
+            trainingState.isRunning = false;
+        });
+    });
+    
+    socket.on('stopMLTraining', () => {
+        if (!checkRateLimit(socket.id)) return;
+        
+        if (!trainingState.isRunning) {
+            socket.emit('error', 'No training is running');
+            return;
+        }
+        
+        trainingState.isRunning = false;
+        socket.emit('trainingStopped');
+        console.log(`🛑 Training stopped by ${socket.id}`);
+    });
+    
+    socket.on('getMLTrainingStatus', () => {
+        if (!checkRateLimit(socket.id)) return;
+        
+        socket.emit('mlTrainingStatus', {
+            isRunning: trainingState.isRunning,
+            totalGames: trainingState.totalGames,
+            gamesCompleted: trainingState.gamesCompleted,
+            mlWins: trainingState.mlWins,
+            baselineWins: trainingState.baselineWins,
+            mlWinRate: trainingState.gamesCompleted > 0 ? trainingState.mlWins / trainingState.gamesCompleted : 0,
+            baselineWinRate: trainingState.gamesCompleted > 0 ? trainingState.baselineWins / trainingState.gamesCompleted : 0,
+            history: trainingState.history
+        });
+    });
+});
+
+// Update getAIStats to include training data
+io.on('connection', (socket) => {
+    const originalGetAIStats = socket.on.bind(socket, 'getAIStats');
+    
+    socket.on('getAIStats', () => {
+        if (!checkRateLimit(socket.id)) return;
+        
+        const statsWithTraining = {
+            ...aiStats,
+            training: {
+                isRunning: trainingState.isRunning,
+                gamesCompleted: trainingState.gamesCompleted,
+                totalGames: trainingState.totalGames,
+                mlWinRate: trainingState.gamesCompleted > 0 ? trainingState.mlWins / trainingState.gamesCompleted : 0,
+                baselineWinRate: trainingState.gamesCompleted > 0 ? trainingState.baselineWins / trainingState.gamesCompleted : 0,
+                history: trainingState.history
+            }
+        };
+        
+        // Try to load model metadata
+        try {
+            if (fs.existsSync(ML_MODEL_FILE)) {
+                const modelData = JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'));
+                statsWithTraining.mlModel = {
+                    lastUpdated: modelData.lastUpdated,
+                    sampleCount: modelData.sampleCount,
+                    mlWinRate: modelData.mlWinRate,
+                    baselineWinRate: modelData.baselineWinRate,
+                    trainingGames: modelData.trainingGames
+                };
+            }
+        } catch (err) {
+            // Model file doesn't exist yet
+        }
+        
+        socket.emit('aiStats', statsWithTraining);
+    });
+});
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} and accessible on all interfaces`);

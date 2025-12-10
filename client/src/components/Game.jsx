@@ -81,6 +81,7 @@ const Game = () => {
     const [username, setUsername] = useState('');
     const [movementMode, setMovementMode] = useState('automatic');
     const [showLobby, setShowLobby] = useState(true);
+    const [currentTab, setCurrentTab] = useState('lobby'); // 'lobby' or 'training'
     const [selectedRoom, setSelectedRoom] = useState('room1');
 
     const troopIconImagesRef = useRef({});
@@ -106,6 +107,15 @@ const Game = () => {
     const [projectiles, setProjectiles] = useState([]);
     const [showAIStats, setShowAIStats] = useState(false);
     const [aiStatsData, setAiStatsData] = useState(null);
+    
+    // ML Training Mode state
+    const [trainingStatus, setTrainingStatus] = useState(null);
+    const [trainingGames, setTrainingGames] = useState(100);
+
+    // Track join/reconnect metadata
+    const hasJoinedRef = useRef(false);
+    const shouldAttemptRejoinRef = useRef(false);
+    const lastJoinInfoRef = useRef(null); // { gameId, username, movementMode }
 
     // Preload terrain SVG image(s)
     useEffect(() => {
@@ -139,12 +149,30 @@ const Game = () => {
         };
     }, []);
 
+    // Keep hasJoinedRef in sync with joined state
+    useEffect(() => {
+        hasJoinedRef.current = joined;
+    }, [joined]);
+
     useEffect(() => {
         socket.on('connect', () => {
             console.log('Connected to server');
             setConnectionStatus('connected');
             reconnectAttemptsRef.current = 0;
             showToast('Connected to server', 'success');
+
+            // If we were previously in a game, automatically try to rejoin it
+            if (shouldAttemptRejoinRef.current && lastJoinInfoRef.current) {
+                const { gameId: lastGameId, username: lastUsername, movementMode: lastMovementMode } = lastJoinInfoRef.current;
+                console.log('Attempting automatic rejoin:', lastGameId, lastUsername);
+                socket.emit('joinGame', {
+                    gameId: lastGameId,
+                    username: lastUsername,
+                    movementMode: lastMovementMode || movementMode
+                });
+                shouldAttemptRejoinRef.current = false;
+                showToast(`Rejoining ${lastGameId}...`, 'info');
+            }
 
             // Clear any pending reconnection
             if (reconnectTimeoutRef.current) {
@@ -157,6 +185,16 @@ const Game = () => {
             console.log('Disconnected from server:', reason);
             setConnectionStatus('disconnected');
             showToast('Disconnected from server', 'error');
+
+            // Remember to attempt an automatic rejoin once we connect again
+            if (hasJoinedRef.current && gameId && username) {
+                lastJoinInfoRef.current = {
+                    gameId,
+                    username: username.trim(),
+                    movementMode
+                };
+                shouldAttemptRejoinRef.current = true;
+            }
 
             // Attempt reconnection with exponential backoff
             if (reason === 'io server disconnect') {
@@ -298,6 +336,26 @@ const Game = () => {
         socket.on('aiStats', (stats) => {
             setAiStatsData(stats);
         });
+        
+        socket.on('mlTrainingStatus', (status) => {
+            setTrainingStatus(status);
+        });
+        
+        socket.on('trainingStarted', ({ games }) => {
+            showToast(`Training started: ${games} games`, 'success');
+            // Poll for status updates
+            const interval = setInterval(() => {
+                socket.emit('getMLTrainingStatus');
+            }, 1000);
+            
+            // Store interval ID to clear later
+            setTimeout(() => clearInterval(interval), games * 1000); // Clear after expected duration
+        });
+        
+        socket.on('trainingStopped', () => {
+            showToast('Training stopped', 'warning');
+            socket.emit('getMLTrainingStatus');
+        });
 
         return () => {
             socket.off('connect');
@@ -309,13 +367,30 @@ const Game = () => {
             socket.off('error');
             socket.off('roomReset');
             socket.off('aiStats');
+            socket.off('mlTrainingStatus');
+            socket.off('trainingStarted');
+            socket.off('trainingStopped');
 
             // Cleanup reconnection timeout
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);
             }
+
+            // (No training interval to clean up anymore)
         };
     }, []);
+    
+    // Poll for training status when in lobby
+    useEffect(() => {
+        if (showLobby && !joined) {
+            socket.emit('getMLTrainingStatus');
+            const interval = setInterval(() => {
+                socket.emit('getMLTrainingStatus');
+            }, 2000); // Poll every 2 seconds
+            
+            return () => clearInterval(interval);
+        }
+    }, [showLobby, joined]);
 
     // Preload troop icon images once
     useEffect(() => {
@@ -329,7 +404,7 @@ const Game = () => {
     }, []);
 
     useEffect(() => {
-        if (!gameState || !myPlayer || !canvasRef.current) return;
+        if (!gameState || !canvasRef.current) return;
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -603,6 +678,24 @@ const Game = () => {
                 p.y - 82
             );
 
+            // Optional ML AI "thought" line above the tower (what the TensorFlow model is favoring)
+            if (gameState.useMLAI && p.isAI && gameState.mlAIInsights && gameState.mlAIInsights[p.id]) {
+                const thought = gameState.mlAIInsights[p.id];
+                const label = thought.cardName || thought.cardId || 'ML deciding...';
+                const scoreText = typeof thought.score === 'number'
+                    ? ` (${(thought.score * 100).toFixed(1)}%)`
+                    : '';
+
+                ctx.fillStyle = '#00e5ff';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(
+                    `ML: ${label}${scoreText}`,
+                    p.x,
+                    p.y - castleSize * 0.7
+                );
+            }
+
             // Player name below the tower
             ctx.fillStyle = 'white';
             ctx.font = 'bold 26px Arial';
@@ -611,7 +704,7 @@ const Game = () => {
             ctx.fillText(displayName, p.x, p.y + 18);
 
             // "YOU" Indicator
-            if (p.id === myPlayer.id) {
+            if (myPlayer && p.id === myPlayer.id) {
                 // Pulsing Ring
                 const time = Date.now() / 500;
                 const radius = 90 + Math.sin(time) * 8;
@@ -1029,6 +1122,12 @@ const Game = () => {
 
         try {
             socket.emit('joinGame', { gameId, username: trimmedUsername, movementMode });
+            // Cache last successful join info so we can auto-rejoin on transient disconnects
+            lastJoinInfoRef.current = {
+                gameId,
+                username: trimmedUsername,
+                movementMode
+            };
             setJoined(true);
             setShowLobby(false);
             showToast(`Joined ${gameId}`, 'success');
@@ -1334,9 +1433,49 @@ const Game = () => {
     if (!joined || showLobby) {
         return (
             <div className="lobby">
-                <h1 style={{ fontSize: '4rem', color: '#00bfff', textShadow: '0 0 20px #00bfff', marginBottom: '2rem' }}>🌊 Oceanic.io</h1>
+                <h1 style={{ fontSize: '4rem', color: '#00bfff', textShadow: '0 0 20px #00bfff', marginBottom: '1rem' }}>🌊 Oceanic.io</h1>
 
-                <div className="lobby-section">
+                {/* Tab Navigation */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '2rem' }}>
+                    <button
+                        onClick={() => setCurrentTab('lobby')}
+                        style={{
+                            padding: '15px 40px',
+                            background: currentTab === 'lobby' ? 'linear-gradient(135deg, #00bfff, #0088cc)' : 'rgba(255,255,255,0.1)',
+                            border: currentTab === 'lobby' ? '2px solid #00bfff' : '2px solid rgba(255,255,255,0.2)',
+                            borderRadius: '12px',
+                            color: '#fff',
+                            fontSize: '1.2rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            boxShadow: currentTab === 'lobby' ? '0 5px 20px rgba(0,191,255,0.4)' : 'none'
+                        }}
+                    >
+                        🎮 Game Lobby
+                    </button>
+                    <button
+                        onClick={() => setCurrentTab('training')}
+                        style={{
+                            padding: '15px 40px',
+                            background: currentTab === 'training' ? 'linear-gradient(135deg, #00e5ff, #9c27b0)' : 'rgba(255,255,255,0.1)',
+                            border: currentTab === 'training' ? '2px solid #00e5ff' : '2px solid rgba(255,255,255,0.2)',
+                            borderRadius: '12px',
+                            color: '#fff',
+                            fontSize: '1.2rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            boxShadow: currentTab === 'training' ? '0 5px 20px rgba(0,229,255,0.4)' : 'none'
+                        }}
+                    >
+                        🧠 ML Training
+                    </button>
+                </div>
+
+                {currentTab === 'lobby' && (
+                    <>
+                        <div className="lobby-section">
                     <label>Username</label>
                     <input
                         type="text"
@@ -1411,6 +1550,166 @@ const Game = () => {
                         🤖 AI Stats
                     </button>
                 </div>
+                    </>
+                )}
+
+                {currentTab === 'training' && (
+                    <>
+                        {/* ML Training Mode Tab */}
+                        <div className="lobby-section" style={{
+                    background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(156, 39, 176, 0.15))',
+                    border: '2px solid #00e5ff',
+                    borderRadius: '15px',
+                    padding: '25px',
+                    marginTop: '20px'
+                }}>
+                    <h3 style={{ color: '#00e5ff', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span>🧠</span> ML Training Mode
+                    </h3>
+                    <p style={{ color: '#aaa', fontSize: '0.95rem', marginBottom: '15px' }}>
+                        Train the TensorFlow model through self-play (ML bot vs baseline AI).
+                    </p>
+                    
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
+                        <label style={{ color: '#fff', fontWeight: 'bold' }}>Games to Run:</label>
+                        <input
+                            type="number"
+                            min="10"
+                            max="1000"
+                            step="10"
+                            value={trainingGames}
+                            onChange={(e) => setTrainingGames(Math.min(1000, Math.max(10, parseInt(e.target.value) || 100)))}
+                            style={{
+                                padding: '8px 12px',
+                                background: 'rgba(0,0,0,0.3)',
+                                border: '1px solid #00e5ff',
+                                borderRadius: '8px',
+                                color: '#fff',
+                                fontSize: '1rem',
+                                width: '100px'
+                            }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button
+                                onClick={() => {
+                                    socket.emit('startMLTraining', { games: trainingGames });
+                                }}
+                                disabled={trainingStatus?.isRunning}
+                                style={{
+                                    padding: '10px 20px',
+                                    background: trainingStatus?.isRunning ? '#666' : 'linear-gradient(135deg, #00e5ff, #0088cc)',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    color: '#fff',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    cursor: trainingStatus?.isRunning ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.3s'
+                                }}
+                            >
+                                {trainingStatus?.isRunning ? '⏸️ Running...' : '▶️ Start Training'}
+                            </button>
+                            {trainingStatus?.isRunning && (
+                                <button
+                                    onClick={() => socket.emit('stopMLTraining')}
+                                    style={{
+                                        padding: '10px 20px',
+                                        background: 'linear-gradient(135deg, #ff5252, #c62828)',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        color: '#fff',
+                                        fontSize: '1rem',
+                                        fontWeight: 'bold',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s'
+                                    }}
+                                >
+                                    ⏹️ Stop
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {trainingStatus && (
+                        <div style={{
+                            background: 'rgba(0,0,0,0.4)',
+                            padding: '15px',
+                            borderRadius: '10px',
+                            border: '1px solid rgba(0, 229, 255, 0.3)'
+                        }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '15px', marginBottom: '10px' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>Progress</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#00e5ff' }}>
+                                        {trainingStatus.gamesCompleted} / {trainingStatus.totalGames}
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>ML Wins</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                                        {trainingStatus.mlWins} ({(trainingStatus.mlWinRate * 100).toFixed(1)}%)
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>Baseline Wins</div>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#F44336' }}>
+                                        {trainingStatus.baselineWins} ({(trainingStatus.baselineWinRate * 100).toFixed(1)}%)
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Progress bar */}
+                            <div style={{
+                                width: '100%',
+                                height: '8px',
+                                background: 'rgba(255,255,255,0.1)',
+                                borderRadius: '4px',
+                                overflow: 'hidden',
+                                marginTop: '10px'
+                            }}>
+                                <div style={{
+                                    width: `${(trainingStatus.gamesCompleted / trainingStatus.totalGames) * 100}%`,
+                                    height: '100%',
+                                    background: 'linear-gradient(90deg, #00e5ff, #0088cc)',
+                                    transition: 'width 0.3s'
+                                }}></div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                        <p style={{ color: '#aaa', fontSize: '0.95rem', marginTop: '30px', textAlign: 'center', maxWidth: '800px', margin: '30px auto 0' }}>
+                            Train the ML bot through self-play battles. The neural network learns from each game and updates its strategy in real-time.
+                            Watch the graphs below to see improvement over time!
+                        </p>
+
+                        <div className="lobby-buttons" style={{ display: 'flex', gap: '20px', marginTop: '30px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button
+                                className="ai-stats-button"
+                                onClick={() => {
+                                    socket.emit('getAIStats');
+                                    setShowAIStats(true);
+                                }}
+                                style={{
+                                    padding: '18px 30px',
+                                    background: 'linear-gradient(135deg, #9c27b0, #673ab7)',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    color: 'white',
+                                    fontSize: '1.2rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '2px',
+                                    boxShadow: '0 5px 20px rgba(156, 39, 176, 0.4)'
+                                }}
+                            >
+                                📊 View Training History
+                            </button>
+                        </div>
+                    </>
+                )}
 
                 {showAIStats && aiStatsData && (
                     <div className="ai-stats-modal" style={{
@@ -1477,6 +1776,20 @@ const Game = () => {
                                         {aiStatsData.totalGames > 0 ? ((aiStatsData.wins / aiStatsData.totalGames) * 100).toFixed(1) : 0}%
                                     </div>
                                 </div>
+                                {aiStatsData.mlModel && (
+                                    <div className="stat-card" style={{ background: 'rgba(0,150,136,0.2)', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: '1.2rem', color: '#aaa' }}>TF Samples Seen</div>
+                                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                                            {aiStatsData.mlModel.sampleCount || 0}
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', color: '#ccc', marginTop: '8px' }}>
+                                            Last Update:{' '}
+                                            {aiStatsData.mlModel.lastUpdated
+                                                ? new Date(aiStatsData.mlModel.lastUpdated).toLocaleTimeString()
+                                                : 'Pending'}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* AI vs Humans Stats */}
@@ -1843,6 +2156,282 @@ const Game = () => {
                                 })()}
                             </div>
 
+                            {/* ML Training History Graph */}
+                            {aiStatsData.training && aiStatsData.training.history && aiStatsData.training.history.length > 0 && (
+                                <>
+                                    <h3 style={{ color: '#00bfff', borderBottom: '1px solid #00bfff', paddingBottom: '10px', marginBottom: '20px' }}>
+                                        🧠 ML Training Progress
+                                    </h3>
+
+                                    <div className="chart-container" style={{
+                                        height: '350px',
+                                        background: 'rgba(0,0,0,0.3)',
+                                        borderRadius: '10px',
+                                        padding: '20px',
+                                        marginBottom: '40px',
+                                        position: 'relative'
+                                    }}>
+                                        {(() => {
+                                            const history = aiStatsData.training.history;
+                                            
+                                            if (history.length === 0) {
+                                                return (
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center',
+                                                        height: '100%',
+                                                        color: '#aaa',
+                                                        fontSize: '1.2rem'
+                                                    }}>
+                                                        No training data yet. Start training to see progress!
+                                                    </div>
+                                                );
+                                            }
+
+                                            const maxStep = history[history.length - 1].step;
+                                            const chartHeight = 280;
+
+                                            return (
+                                                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                                                    {/* Y-axis labels (Win Rate %) */}
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        left: 0,
+                                                        top: 0,
+                                                        bottom: 50,
+                                                        width: '50px',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        justifyContent: 'space-between',
+                                                        fontSize: '0.8rem',
+                                                        color: '#aaa',
+                                                        paddingRight: '5px',
+                                                        textAlign: 'right'
+                                                    }}>
+                                                        <div>100%</div>
+                                                        <div>75%</div>
+                                                        <div>50%</div>
+                                                        <div>25%</div>
+                                                        <div>0%</div>
+                                                    </div>
+
+                                                    {/* Y-axis label */}
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        left: '-5px',
+                                                        top: '50%',
+                                                        transform: 'rotate(-90deg) translateX(-50%)',
+                                                        transformOrigin: 'left center',
+                                                        fontSize: '0.9rem',
+                                                        color: '#00bfff',
+                                                        fontWeight: 'bold',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        Win Rate (%)
+                                                    </div>
+
+                                                    {/* Chart area */}
+                                                    <div style={{ marginLeft: '60px', marginRight: '20px', height: '100%', position: 'relative' }}>
+                                                        {/* Grid lines */}
+                                                        {[0, 0.25, 0.5, 0.75, 1].map(fraction => (
+                                                            <div key={fraction} style={{
+                                                                position: 'absolute',
+                                                                left: 0,
+                                                                right: 0,
+                                                                bottom: `${50 + (fraction * chartHeight)}px`,
+                                                                height: '1px',
+                                                                background: fraction === 0.5 ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'
+                                                            }} />
+                                                        ))}
+
+                                                        {/* 50% reference line */}
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            right: 0,
+                                                            bottom: `${50 + (0.5 * chartHeight)}px`,
+                                                            height: '2px',
+                                                            background: 'rgba(255, 193, 7, 0.5)',
+                                                            borderTop: '2px dashed rgba(255, 193, 7, 0.8)'
+                                                        }}>
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                right: '5px',
+                                                                top: '-10px',
+                                                                fontSize: '0.75rem',
+                                                                color: '#FFC107',
+                                                                background: 'rgba(0,0,0,0.7)',
+                                                                padding: '2px 6px',
+                                                                borderRadius: '3px'
+                                                            }}>
+                                                                50% Baseline
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Line chart */}
+                                                        <svg style={{
+                                                            position: 'absolute',
+                                                            bottom: '50px',
+                                                            left: 0,
+                                                            width: '100%',
+                                                            height: chartHeight,
+                                                            overflow: 'visible'
+                                                        }}>
+                                                            <defs>
+                                                                <linearGradient id="mlGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                                    <stop offset="0%" stopColor="#4CAF50" stopOpacity="0.3" />
+                                                                    <stop offset="100%" stopColor="#4CAF50" stopOpacity="0.05" />
+                                                                </linearGradient>
+                                                                <linearGradient id="baselineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                                    <stop offset="0%" stopColor="#F44336" stopOpacity="0.3" />
+                                                                    <stop offset="100%" stopColor="#F44336" stopOpacity="0.05" />
+                                                                </linearGradient>
+                                                            </defs>
+
+                                                            {/* ML Win Rate Line */}
+                                                            <polyline
+                                                                points={history.map((point) => {
+                                                                    const x = (point.step / maxStep) * 100;
+                                                                    const y = chartHeight - (point.mlWinRate * chartHeight);
+                                                                    return `${x}%,${y}`;
+                                                                }).join(' ')}
+                                                                fill="none"
+                                                                stroke="#4CAF50"
+                                                                strokeWidth="3"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                            />
+
+                                                            {/* Baseline Win Rate Line */}
+                                                            <polyline
+                                                                points={history.map((point) => {
+                                                                    const x = (point.step / maxStep) * 100;
+                                                                    const y = chartHeight - (point.baselineWinRate * chartHeight);
+                                                                    return `${x}%,${y}`;
+                                                                }).join(' ')}
+                                                                fill="none"
+                                                                stroke="#F44336"
+                                                                strokeWidth="3"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                            />
+
+                                                            {/* Data points */}
+                                                            {history.map((point, i) => {
+                                                                const x = (point.step / maxStep) * 100;
+                                                                const mlY = chartHeight - (point.mlWinRate * chartHeight);
+                                                                const baselineY = chartHeight - (point.baselineWinRate * chartHeight);
+                                                                const isLabelPoint = i === history.length - 1 || i % 2 === 0;
+
+                                                                return (
+                                                                    <g key={i}>
+                                                                        {/* ML point */}
+                                                                        <circle
+                                                                            cx={`${x}%`}
+                                                                            cy={mlY}
+                                                                            r={isLabelPoint ? "5" : "3"}
+                                                                            fill="#4CAF50"
+                                                                            stroke="#001e3c"
+                                                                            strokeWidth="2"
+                                                                        >
+                                                                            <title>
+                                                                                Step {point.step}: ML {(point.mlWinRate * 100).toFixed(1)}%
+                                                                            </title>
+                                                                        </circle>
+                                                                        
+                                                                        {/* Baseline point */}
+                                                                        <circle
+                                                                            cx={`${x}%`}
+                                                                            cy={baselineY}
+                                                                            r={isLabelPoint ? "5" : "3"}
+                                                                            fill="#F44336"
+                                                                            stroke="#001e3c"
+                                                                            strokeWidth="2"
+                                                                        >
+                                                                            <title>
+                                                                                Step {point.step}: Baseline {(point.baselineWinRate * 100).toFixed(1)}%
+                                                                            </title>
+                                                                        </circle>
+                                                                    </g>
+                                                                );
+                                                            })}
+                                                        </svg>
+
+                                                        {/* X-axis labels */}
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            bottom: '25px',
+                                                            left: 0,
+                                                            right: 0,
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            fontSize: '0.8rem',
+                                                            color: '#aaa'
+                                                        }}>
+                                                            {[0, Math.floor(maxStep * 0.25), Math.floor(maxStep * 0.5), Math.floor(maxStep * 0.75), maxStep].map((step, i) => (
+                                                                <div key={i}>{step}</div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* X-axis label */}
+                                                        <div style={{
+                                                            position: 'absolute',
+                                                            bottom: '5px',
+                                                            left: 0,
+                                                            right: 0,
+                                                            textAlign: 'center',
+                                                            fontSize: '0.9rem',
+                                                            color: '#00bfff',
+                                                            fontWeight: 'bold'
+                                                        }}>
+                                                            Training Games Completed
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Legend */}
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '10px',
+                                                        right: '30px',
+                                                        background: 'rgba(0,0,0,0.7)',
+                                                        padding: '12px',
+                                                        borderRadius: '8px',
+                                                        fontSize: '0.85rem',
+                                                        border: '1px solid rgba(0,191,255,0.3)'
+                                                    }}>
+                                                        <div style={{ marginBottom: '8px', fontWeight: 'bold', color: '#00bfff' }}>
+                                                            Training Results
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+                                                            <div style={{ width: '20px', height: '3px', background: '#4CAF50' }} />
+                                                            <span>ML Bot Win Rate</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <div style={{ width: '20px', height: '3px', background: '#F44336' }} />
+                                                            <span>Baseline Bot Win Rate</span>
+                                                        </div>
+                                                        {history.length > 0 && (
+                                                            <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+                                                                <div style={{ fontSize: '0.75rem', color: '#aaa' }}>
+                                                                    Total Games: {history[history.length - 1].step}
+                                                                </div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#4CAF50' }}>
+                                                                    ML: {(history[history.length - 1].mlWinRate * 100).toFixed(1)}%
+                                                                </div>
+                                                                <div style={{ fontSize: '0.75rem', color: '#F44336' }}>
+                                                                    Baseline: {(history[history.length - 1].baselineWinRate * 100).toFixed(1)}%
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </>
+                            )}
+
                             <h3 style={{ color: '#00bfff', borderBottom: '1px solid #00bfff', paddingBottom: '10px', marginBottom: '20px' }}>
                                 🃏 Card Performance
                             </h3>
@@ -1877,6 +2466,7 @@ const Game = () => {
                                         );
                                     })}
                             </div>
+
                         </div>
                     </div>
                 )}
@@ -1889,7 +2479,9 @@ const Game = () => {
         window.location.reload();
     };
 
-    if (!gameState || !myPlayer) return <div className="loading">Loading...</div>;
+    if (!gameState) return <div className="loading">Loading...</div>;
+
+    const isSpectator = !myPlayer || !gameState.players[myPlayer.id];
 
     return (
         <div className="game-container">
@@ -1966,14 +2558,69 @@ const Game = () => {
                 ))}
             </div>
 
-            <canvas
-                ref={canvasRef}
-                style={{ width: '100%', height: '100%', cursor: placementMode ? 'crosshair' : (draggingTroop ? 'grabbing' : 'default') }}
-                onClick={handleCanvasClick}
-                onMouseDown={handleCanvasMouseDown}
-                onMouseMove={handleCanvasMouseMove}
-                onMouseUp={handleCanvasMouseUp}
-            />
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <canvas
+                    ref={canvasRef}
+                    style={{ width: '100%', height: '100%', cursor: placementMode ? 'crosshair' : (draggingTroop ? 'grabbing' : 'default') }}
+                    onClick={handleCanvasClick}
+                    onMouseDown={handleCanvasMouseDown}
+                    onMouseMove={handleCanvasMouseMove}
+                    onMouseUp={handleCanvasMouseUp}
+                />
+                {gameState.useMLAI && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '10px',
+                            background: 'rgba(0, 0, 0, 0.7)',
+                            borderRadius: '8px',
+                            padding: '4px 10px',
+                            fontSize: '0.75rem',
+                            color: '#00e5ff',
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        TensorFlow ML AI
+                        <span style={{ color: '#aaa', marginLeft: '6px' }}>
+                            {gameState.mlModelLastUpdated
+                                ? new Date(gameState.mlModelLastUpdated).toLocaleTimeString()
+                                : 'training...'}
+                        </span>
+                    </div>
+                )}
+                {isSpectator && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '10px',
+                            left: '10px',
+                            background: 'rgba(0, 0, 0, 0.7)',
+                            borderRadius: '8px',
+                            padding: '6px 12px',
+                            fontSize: '0.75rem',
+                            color: '#fff',
+                            pointerEvents: 'none'
+                        }}
+                    >
+                        <div>
+                            Turn #{gameState.turnNumber || 1}
+                            {gameState.gameMode === 'live' && ' (Live)'}
+                        </div>
+                        <div style={{ color: '#ccc' }}>
+                            Players alive:{' '}
+                            {Object.values(gameState.players).filter(p => !p.eliminated).length}
+                            {' / '}
+                            {Object.keys(gameState.players).length}
+                        </div>
+                        {gameState.useMLAI && (
+                            <div style={{ color: '#00e5ff' }}>
+                                ML Self-Play: {gameState.isTraining ? 'Training' : 'Match'}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             {/* Target Selection Modal for Offensive Units */}
             {targetSelectionMode && pendingOffensiveCard && (
@@ -1983,7 +2630,7 @@ const Game = () => {
                         <p className="modal-subtitle">Choose which enemy base to attack with {pendingOffensiveCard.name}</p>
                         <div className="target-options">
                             {Object.values(gameState.players).map(p => {
-                                if (p.id === myPlayer.id || p.eliminated) return null;
+                                if (myPlayer && (p.id === myPlayer.id || p.eliminated)) return null;
                                 return (
                                     <button
                                         key={p.id}
@@ -2071,11 +2718,12 @@ const Game = () => {
                     <div className="player-list">
                         {Object.values(gameState.players).map(p => {
                             const winProb = gameState.aiWinProbabilities && gameState.aiWinProbabilities[p.id];
+                            const mlThought = gameState.mlAIInsights && gameState.mlAIInsights[p.id];
                             return (
                                 <div key={p.id} className="player-item" style={{ color: p.color }}>
                                     <div className="player-name">
                                         {p.username || `Player ${p.id.substr(0, 4)}`}
-                                        {p.id === myPlayer.id && ' (YOU)'}
+                                        {myPlayer && p.id === myPlayer.id && ' (YOU)'}
                                         {p.id === gameState.roomLeader && ' 👑'}
                                         {p.isAI && ' 🤖'}
                                     </div>
@@ -2084,6 +2732,16 @@ const Game = () => {
                                             color: parseFloat(winProb.percentage) >= 50 ? '#4CAF50' : parseFloat(winProb.percentage) >= 30 ? '#FFC107' : '#F44336'
                                         }}>
                                             Win: {winProb.percentage}%
+                                        </div>
+                                    )}
+                                    {p.isAI && gameState.useMLAI && mlThought && (
+                                        <div className="ai-ml-thought" style={{ fontSize: '0.8rem', color: '#00e5ff', marginTop: '2px' }}>
+                                            ML next: {mlThought.cardName || mlThought.cardId}
+                                            {typeof mlThought.score === 'number' && (
+                                                <span style={{ color: '#aaa' }}>
+                                                    {' '}(score {(mlThought.score * 100).toFixed(1)}%)
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -2173,6 +2831,37 @@ const Game = () => {
                                     ))}
                                 </div>
                             </div>
+
+                            <div className="setting-group">
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!gameState.useMLAI}
+                                        onChange={(e) => socket.emit('updateRoomSettings', {
+                                            gameId,
+                                            settings: { useMLAI: e.target.checked }
+                                        })}
+                                        style={{ marginRight: '8px' }}
+                                    />
+                                    Use Machine Learning AI (experimental)
+                                </label>
+                                <div style={{ fontSize: '0.8rem', color: '#aaa', marginTop: '4px' }}>
+                                    When enabled, AI bots use a neural network trained from past games instead of only the heuristic strategy.
+                                </div>
+                            </div>
+                            {gameState.useMLAI && (
+                                <div className="setting-group">
+                                    <div style={{ fontSize: '0.9rem', color: '#00e5ff' }}>
+                                        TensorFlow Model: <strong>Enabled</strong>
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                                        Last Update:{' '}
+                                        {gameState.mlModelLastUpdated
+                                            ? new Date(gameState.mlModelLastUpdated).toLocaleString()
+                                            : 'Pending training'}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -2193,6 +2882,22 @@ const Game = () => {
                                 <span className="setting-label">AI Players:</span>
                                 <span className="setting-value">{gameState.aiPlayerCount || 0}</span>
                             </div>
+                            <div className="setting-info">
+                                <span className="setting-label">AI Engine:</span>
+                                <span className="setting-value">
+                                    {gameState.useMLAI ? 'TensorFlow ML (Enabled)' : 'Heuristic'}
+                                </span>
+                            </div>
+                            {gameState.useMLAI && (
+                                <div className="setting-info">
+                                    <span className="setting-label">Model Updated:</span>
+                                    <span className="setting-value">
+                                        {gameState.mlModelLastUpdated
+                                            ? new Date(gameState.mlModelLastUpdated).toLocaleString()
+                                            : 'Pending training'}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -2214,7 +2919,7 @@ const Game = () => {
                 </div>
             )}
 
-            {gameState.status === 'playing' && (
+            {gameState.status === 'playing' && !isSpectator && (
                 <div className="ui-layer">
                     <div className="top-banner" style={{ borderColor: myPlayer.color }}>
                         <div className="banner-content">
