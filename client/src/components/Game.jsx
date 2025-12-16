@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import './Game.css';
+import ProbabilityTree from './ProbabilityTree';
 import sharkIcon from '../assets/shark.svg';
 import crabIcon from '../assets/crab.svg';
 import jellyfishIcon from '../assets/jellyfish.svg';
@@ -42,6 +43,52 @@ const socket = io(SOCKET_URL);
 const GRID_SIZE = 40;
 const CELL_SIZE = 50;
 const MAP_SIZE = GRID_SIZE * CELL_SIZE; // 1000x1000
+
+function computeTroopStackLayout(troops) {
+    const byCell = new Map(); // key -> troop[]
+    for (const t of troops || []) {
+        if (!t || t.gridX === undefined || t.gridY === undefined || !t.id) continue;
+        const key = `${t.gridX},${t.gridY}`;
+        const arr = byCell.get(key) || [];
+        arr.push(t);
+        byCell.set(key, arr);
+    }
+
+    // Stable ordering for offsets so stacks don't shuffle frame-to-frame
+    for (const arr of byCell.values()) {
+        arr.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    }
+
+    const offsetById = new Map(); // id -> { dx, dy, size }
+    const cellInfo = new Map(); // key -> { gridX, gridY, size }
+
+    for (const [key, arr] of byCell.entries()) {
+        const size = arr.length;
+        const [gxStr, gyStr] = key.split(',');
+        const gridX = Number(gxStr);
+        const gridY = Number(gyStr);
+        cellInfo.set(key, { gridX, gridY, size });
+
+        for (let idx = 0; idx < size; idx++) {
+            const t = arr[idx];
+            if (size <= 1) {
+                offsetById.set(t.id, { dx: 0, dy: 0, size, idx });
+                continue;
+            }
+            // Fan troops around the cell center so stacks are visible
+            const r = Math.min(14, 5 + Math.sqrt(size) * 3);
+            const angle = (idx / size) * Math.PI * 2;
+            offsetById.set(t.id, {
+                dx: Math.cos(angle) * r,
+                dy: Math.sin(angle) * r,
+                size,
+                idx
+            });
+        }
+    }
+
+    return { offsetById, cellInfo };
+}
 
 // Helper function to darken a hex color
 const darkenColor = (color, factor) => {
@@ -97,6 +144,7 @@ const Game = () => {
     const [possibleMoves, setPossibleMoves] = useState([]);
     const [draggingTroop, setDraggingTroop] = useState(null);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [renderTick, setRenderTick] = useState(0); // For forcing re-renders during drag
     const [moveNotification, setMoveNotification] = useState(null);
     const [connectionStatus, setConnectionStatus] = useState('connected'); // 'connected', 'disconnected', 'reconnecting'
     const [toasts, setToasts] = useState([]);
@@ -107,7 +155,13 @@ const Game = () => {
     const [projectiles, setProjectiles] = useState([]);
     const [showAIStats, setShowAIStats] = useState(false);
     const [aiStatsData, setAiStatsData] = useState(null);
-    
+    const [showProbabilityTree, setShowProbabilityTree] = useState(false);
+
+    // Precompute stack layout so multiple troops on the same tile are clearly visible.
+    const troopStackLayout = useMemo(() => {
+        return computeTroopStackLayout(gameState?.troops || []);
+    }, [gameState?.troops]);
+
     // ML Training Mode state
     const [trainingStatus, setTrainingStatus] = useState(null);
     const [trainingGames, setTrainingGames] = useState(100);
@@ -276,15 +330,15 @@ const Game = () => {
             console.log('My info:', info);
         });
 
-        socket.on('gameOver', ({ winner, eliminated }) => {
+        socket.on('gameOver', ({ winner, winnerName, eliminated }) => {
             setGameState(prev => prev ? { ...prev, status: 'ended' } : prev);
 
             if (winner) {
                 const outcome = winner === socket.id ? 'win' : 'lose';
-                setEndState({ outcome, winnerId: winner });
+                setEndState({ outcome, winnerId: winner, winnerName: winnerName || null });
             } else if (eliminated) {
                 if (eliminated === socket.id) {
-                    setEndState({ outcome: 'lose', winnerId: null });
+                    setEndState({ outcome: 'lose', winnerId: null, winnerName: null });
                 } else {
                     console.log(`Player ${eliminated} eliminated`);
                 }
@@ -336,22 +390,22 @@ const Game = () => {
         socket.on('aiStats', (stats) => {
             setAiStatsData(stats);
         });
-        
+
         socket.on('mlTrainingStatus', (status) => {
             setTrainingStatus(status);
         });
-        
+
         socket.on('trainingStarted', ({ games }) => {
             showToast(`Training started: ${games} games`, 'success');
             // Poll for status updates
             const interval = setInterval(() => {
                 socket.emit('getMLTrainingStatus');
             }, 1000);
-            
+
             // Store interval ID to clear later
             setTimeout(() => clearInterval(interval), games * 1000); // Clear after expected duration
         });
-        
+
         socket.on('trainingStopped', () => {
             showToast('Training stopped', 'warning');
             socket.emit('getMLTrainingStatus');
@@ -379,7 +433,7 @@ const Game = () => {
             // (No training interval to clean up anymore)
         };
     }, []);
-    
+
     // Poll for training status when in lobby
     useEffect(() => {
         if (showLobby && !joined) {
@@ -387,7 +441,7 @@ const Game = () => {
             const interval = setInterval(() => {
                 socket.emit('getMLTrainingStatus');
             }, 2000); // Poll every 2 seconds
-            
+
             return () => clearInterval(interval);
         }
     }, [showLobby, joined]);
@@ -700,7 +754,7 @@ const Game = () => {
             ctx.fillStyle = 'white';
             ctx.font = 'bold 26px Arial';
             ctx.textAlign = 'center';
-            const displayName = p.username || `P${p.id.substr(0, 4)}`;
+            const displayName = p.username || `Player ${p.id.substr(0, 4)}`;
             ctx.fillText(displayName, p.x, p.y + 18);
 
             // "YOU" Indicator
@@ -727,8 +781,8 @@ const Game = () => {
                 ctx.fill();
             }
 
-            // AI Win Probability Display
-            if (p.isAI && gameState.aiWinProbabilities && gameState.aiWinProbabilities[p.id]) {
+            // Win Probability Display (for all players)
+            if (gameState.aiWinProbabilities && gameState.aiWinProbabilities[p.id]) {
                 const winProb = gameState.aiWinProbabilities[p.id];
                 const probPercent = parseFloat(winProb.percentage);
 
@@ -807,6 +861,13 @@ const Game = () => {
                 displayY = anim.targetY;
                 anim.currentX = displayX;
                 anim.currentY = displayY;
+            }
+
+            // Apply stack offset so multiple troops in the same grid cell are visible
+            const stack = troopStackLayout?.offsetById?.get(t.id);
+            if (stack) {
+                displayX += stack.dx;
+                displayY += stack.dy;
             }
 
             const radius = 30;
@@ -964,6 +1025,34 @@ const Game = () => {
             }
         });
 
+        // Draw stack counts (xN) once per cell so it's obvious multiple troops share the same square
+        if (troopStackLayout?.cellInfo) {
+            troopStackLayout.cellInfo.forEach(({ gridX, gridY, size }) => {
+                if (size <= 1) return;
+                const cx = gridX * CELL_SIZE + CELL_SIZE / 2;
+                const cy = gridY * CELL_SIZE + CELL_SIZE / 2;
+                const bx = cx + 18;
+                const by = cy - 18;
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.beginPath();
+                ctx.arc(bx, by, 13, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`x${size}`, bx, by);
+                ctx.restore();
+            });
+        }
+
         // Draw projectiles
         projectiles.forEach(projectile => {
             const elapsed = now - projectile.startTime;
@@ -1083,11 +1172,28 @@ const Game = () => {
 
         ctx.restore();
 
-        // Request animation frame for smooth pulsing
-        const animId = requestAnimationFrame(() => { });
-        return () => cancelAnimationFrame(animId);
+    }, [gameState, myPlayer, mountainXRef.current, draggingTroop, dragOffset, renderTick]);
 
-    }, [gameState, myPlayer, mountainXRef.current, draggingTroop, dragOffset]);
+    // Continuous animation loop for smooth dragging
+    useEffect(() => {
+        if (!draggingTroop) return;
+
+        let animationFrameId;
+        const animate = () => {
+            // Force a re-render by updating the render tick
+            // This ensures the canvas re-renders smoothly during dragging
+            setRenderTick(tick => tick + 1);
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animationFrameId = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [draggingTroop]);
 
     const handleJoin = () => {
         const trimmedUsername = username.trim();
@@ -1320,8 +1426,9 @@ const Game = () => {
         // Check if clicking on a troop (use animated position)
         const clickedTroop = gameState.troops.find(t => {
             const anim = troopAnimationsRef.current[t.id];
-            const tx = anim?.currentX || t.x;
-            const ty = anim?.currentY || t.y;
+            const stack = troopStackLayout?.offsetById?.get(t.id);
+            const tx = (anim?.currentX || t.x) + (stack?.dx || 0);
+            const ty = (anim?.currentY || t.y) + (stack?.dy || 0);
             const dist = Math.sqrt(Math.pow(tx - mouseX, 2) + Math.pow(ty - mouseY, 2));
             return dist < 40 && t.ownerId === myPlayer.id;
         });
@@ -1379,8 +1486,9 @@ const Game = () => {
         if (gameState && gameState.troops && !draggingTroop) {
             const hoveredTroopData = gameState.troops.find(t => {
                 const anim = troopAnimationsRef.current[t.id];
-                const tx = anim?.currentX || t.x;
-                const ty = anim?.currentY || t.y;
+                const stack = troopStackLayout?.offsetById?.get(t.id);
+                const tx = (anim?.currentX || t.x) + (stack?.dx || 0);
+                const ty = (anim?.currentY || t.y) + (stack?.dy || 0);
                 const dist = Math.hypot(mouseX - tx, mouseY - ty);
                 return dist < 30; // 30px radius
             });
@@ -1476,80 +1584,80 @@ const Game = () => {
                 {currentTab === 'lobby' && (
                     <>
                         <div className="lobby-section">
-                    <label>Username</label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        placeholder="Enter your username"
-                        maxLength={20}
-                    />
-                </div>
+                            <label>Username</label>
+                            <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Enter your username"
+                                maxLength={20}
+                            />
+                        </div>
 
-                <div className="lobby-section">
-                    <label>Select Room</label>
-                    <div className="room-grid">
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
+                        <div className="lobby-section">
+                            <label>Select Room</label>
+                            <div className="room-grid">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
+                                    <button
+                                        key={num}
+                                        className={`room-button ${selectedRoom === `room${num}` ? 'selected' : ''}`}
+                                        onClick={() => {
+                                            setSelectedRoom(`room${num}`);
+                                            setGameId(`room${num}`);
+                                        }}
+                                    >
+                                        Room {num}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="lobby-section">
+                            <label>Movement Mode</label>
+                            <div className="mode-selection">
+                                <button
+                                    className={`mode-button ${movementMode === 'automatic' ? 'selected' : ''}`}
+                                    onClick={() => setMovementMode('automatic')}
+                                >
+                                    ⚙️ Automatic
+                                    <span className="mode-desc">Troops move automatically</span>
+                                </button>
+                                <button
+                                    className={`mode-button ${movementMode === 'manual' ? 'selected' : ''}`}
+                                    onClick={() => setMovementMode('manual')}
+                                >
+                                    🎮 Manual
+                                    <span className="mode-desc">Control troop movement with arrow keys</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="lobby-buttons" style={{ display: 'flex', gap: '20px', marginTop: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button className="join-button" onClick={handleJoin}>Join Game</button>
                             <button
-                                key={num}
-                                className={`room-button ${selectedRoom === `room${num}` ? 'selected' : ''}`}
+                                className="ai-stats-button"
                                 onClick={() => {
-                                    setSelectedRoom(`room${num}`);
-                                    setGameId(`room${num}`);
+                                    socket.emit('getAIStats');
+                                    setShowAIStats(true);
+                                }}
+                                style={{
+                                    padding: '18px 30px',
+                                    background: 'linear-gradient(135deg, #9c27b0, #673ab7)',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    color: 'white',
+                                    fontSize: '1.2rem',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '2px',
+                                    boxShadow: '0 5px 20px rgba(156, 39, 176, 0.4)'
                                 }}
                             >
-                                Room {num}
+                                🤖 AI Stats
                             </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="lobby-section">
-                    <label>Movement Mode</label>
-                    <div className="mode-selection">
-                        <button
-                            className={`mode-button ${movementMode === 'automatic' ? 'selected' : ''}`}
-                            onClick={() => setMovementMode('automatic')}
-                        >
-                            ⚙️ Automatic
-                            <span className="mode-desc">Troops move automatically</span>
-                        </button>
-                        <button
-                            className={`mode-button ${movementMode === 'manual' ? 'selected' : ''}`}
-                            onClick={() => setMovementMode('manual')}
-                        >
-                            🎮 Manual
-                            <span className="mode-desc">Control troop movement with arrow keys</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="lobby-buttons" style={{ display: 'flex', gap: '20px', marginTop: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button className="join-button" onClick={handleJoin}>Join Game</button>
-                    <button
-                        className="ai-stats-button"
-                        onClick={() => {
-                            socket.emit('getAIStats');
-                            setShowAIStats(true);
-                        }}
-                        style={{
-                            padding: '18px 30px',
-                            background: 'linear-gradient(135deg, #9c27b0, #673ab7)',
-                            border: 'none',
-                            borderRadius: '12px',
-                            color: 'white',
-                            fontSize: '1.2rem',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            textTransform: 'uppercase',
-                            letterSpacing: '2px',
-                            boxShadow: '0 5px 20px rgba(156, 39, 176, 0.4)'
-                        }}
-                    >
-                        🤖 AI Stats
-                    </button>
-                </div>
+                        </div>
                     </>
                 )}
 
@@ -1557,126 +1665,126 @@ const Game = () => {
                     <>
                         {/* ML Training Mode Tab */}
                         <div className="lobby-section" style={{
-                    background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(156, 39, 176, 0.15))',
-                    border: '2px solid #00e5ff',
-                    borderRadius: '15px',
-                    padding: '25px',
-                    marginTop: '20px'
-                }}>
-                    <h3 style={{ color: '#00e5ff', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span>🧠</span> ML Training Mode
-                    </h3>
-                    <p style={{ color: '#aaa', fontSize: '0.95rem', marginBottom: '15px' }}>
-                        Train the TensorFlow model through self-play (ML bot vs baseline AI).
-                    </p>
-                    
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
-                        <label style={{ color: '#fff', fontWeight: 'bold' }}>Games to Run:</label>
-                        <input
-                            type="number"
-                            min="10"
-                            max="1000"
-                            step="10"
-                            value={trainingGames}
-                            onChange={(e) => setTrainingGames(Math.min(1000, Math.max(10, parseInt(e.target.value) || 100)))}
-                            style={{
-                                padding: '8px 12px',
-                                background: 'rgba(0,0,0,0.3)',
-                                border: '1px solid #00e5ff',
-                                borderRadius: '8px',
-                                color: '#fff',
-                                fontSize: '1rem',
-                                width: '100px'
-                            }}
-                        />
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <button
-                                onClick={() => {
-                                    socket.emit('startMLTraining', { games: trainingGames });
-                                }}
-                                disabled={trainingStatus?.isRunning}
-                                style={{
-                                    padding: '10px 20px',
-                                    background: trainingStatus?.isRunning ? '#666' : 'linear-gradient(135deg, #00e5ff, #0088cc)',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    color: '#fff',
-                                    fontSize: '1rem',
-                                    fontWeight: 'bold',
-                                    cursor: trainingStatus?.isRunning ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.3s'
-                                }}
-                            >
-                                {trainingStatus?.isRunning ? '⏸️ Running...' : '▶️ Start Training'}
-                            </button>
-                            {trainingStatus?.isRunning && (
-                                <button
-                                    onClick={() => socket.emit('stopMLTraining')}
+                            background: 'linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(156, 39, 176, 0.15))',
+                            border: '2px solid #00e5ff',
+                            borderRadius: '15px',
+                            padding: '25px',
+                            marginTop: '20px'
+                        }}>
+                            <h3 style={{ color: '#00e5ff', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span>🧠</span> ML Training Mode
+                            </h3>
+                            <p style={{ color: '#aaa', fontSize: '0.95rem', marginBottom: '15px' }}>
+                                Train the TensorFlow model through self-play (ML bot vs baseline AI).
+                            </p>
+
+                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap' }}>
+                                <label style={{ color: '#fff', fontWeight: 'bold' }}>Games to Run:</label>
+                                <input
+                                    type="number"
+                                    min="10"
+                                    max="1000"
+                                    step="10"
+                                    value={trainingGames}
+                                    onChange={(e) => setTrainingGames(Math.min(1000, Math.max(10, parseInt(e.target.value) || 100)))}
                                     style={{
-                                        padding: '10px 20px',
-                                        background: 'linear-gradient(135deg, #ff5252, #c62828)',
-                                        border: 'none',
+                                        padding: '8px 12px',
+                                        background: 'rgba(0,0,0,0.3)',
+                                        border: '1px solid #00e5ff',
                                         borderRadius: '8px',
                                         color: '#fff',
                                         fontSize: '1rem',
-                                        fontWeight: 'bold',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s'
+                                        width: '100px'
                                     }}
-                                >
-                                    ⏹️ Stop
-                                </button>
+                                />
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button
+                                        onClick={() => {
+                                            socket.emit('startMLTraining', { games: trainingGames });
+                                        }}
+                                        disabled={trainingStatus?.isRunning}
+                                        style={{
+                                            padding: '10px 20px',
+                                            background: trainingStatus?.isRunning ? '#666' : 'linear-gradient(135deg, #00e5ff, #0088cc)',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            color: '#fff',
+                                            fontSize: '1rem',
+                                            fontWeight: 'bold',
+                                            cursor: trainingStatus?.isRunning ? 'not-allowed' : 'pointer',
+                                            transition: 'all 0.3s'
+                                        }}
+                                    >
+                                        {trainingStatus?.isRunning ? '⏸️ Running...' : '▶️ Start Training'}
+                                    </button>
+                                    {trainingStatus?.isRunning && (
+                                        <button
+                                            onClick={() => socket.emit('stopMLTraining')}
+                                            style={{
+                                                padding: '10px 20px',
+                                                background: 'linear-gradient(135deg, #ff5252, #c62828)',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                color: '#fff',
+                                                fontSize: '1rem',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.3s'
+                                            }}
+                                        >
+                                            ⏹️ Stop
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {trainingStatus && (
+                                <div style={{
+                                    background: 'rgba(0,0,0,0.4)',
+                                    padding: '15px',
+                                    borderRadius: '10px',
+                                    border: '1px solid rgba(0, 229, 255, 0.3)'
+                                }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '15px', marginBottom: '10px' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>Progress</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#00e5ff' }}>
+                                                {trainingStatus.gamesCompleted} / {trainingStatus.totalGames}
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>ML Wins</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
+                                                {trainingStatus.mlWins} ({(trainingStatus.mlWinRate * 100).toFixed(1)}%)
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>Baseline Wins</div>
+                                            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#F44336' }}>
+                                                {trainingStatus.baselineWins} ({(trainingStatus.baselineWinRate * 100).toFixed(1)}%)
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Progress bar */}
+                                    <div style={{
+                                        width: '100%',
+                                        height: '8px',
+                                        background: 'rgba(255,255,255,0.1)',
+                                        borderRadius: '4px',
+                                        overflow: 'hidden',
+                                        marginTop: '10px'
+                                    }}>
+                                        <div style={{
+                                            width: `${(trainingStatus.gamesCompleted / trainingStatus.totalGames) * 100}%`,
+                                            height: '100%',
+                                            background: 'linear-gradient(90deg, #00e5ff, #0088cc)',
+                                            transition: 'width 0.3s'
+                                        }}></div>
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    </div>
-
-                    {trainingStatus && (
-                        <div style={{
-                            background: 'rgba(0,0,0,0.4)',
-                            padding: '15px',
-                            borderRadius: '10px',
-                            border: '1px solid rgba(0, 229, 255, 0.3)'
-                        }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '15px', marginBottom: '10px' }}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>Progress</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#00e5ff' }}>
-                                        {trainingStatus.gamesCompleted} / {trainingStatus.totalGames}
-                                    </div>
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>ML Wins</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#4CAF50' }}>
-                                        {trainingStatus.mlWins} ({(trainingStatus.mlWinRate * 100).toFixed(1)}%)
-                                    </div>
-                                </div>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.85rem', color: '#aaa', marginBottom: '5px' }}>Baseline Wins</div>
-                                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#F44336' }}>
-                                        {trainingStatus.baselineWins} ({(trainingStatus.baselineWinRate * 100).toFixed(1)}%)
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Progress bar */}
-                            <div style={{
-                                width: '100%',
-                                height: '8px',
-                                background: 'rgba(255,255,255,0.1)',
-                                borderRadius: '4px',
-                                overflow: 'hidden',
-                                marginTop: '10px'
-                            }}>
-                                <div style={{
-                                    width: `${(trainingStatus.gamesCompleted / trainingStatus.totalGames) * 100}%`,
-                                    height: '100%',
-                                    background: 'linear-gradient(90deg, #00e5ff, #0088cc)',
-                                    transition: 'width 0.3s'
-                                }}></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
 
                         <p style={{ color: '#aaa', fontSize: '0.95rem', marginTop: '30px', textAlign: 'center', maxWidth: '800px', margin: '30px auto 0' }}>
                             Train the ML bot through self-play battles. The neural network learns from each game and updates its strategy in real-time.
@@ -2173,7 +2281,7 @@ const Game = () => {
                                     }}>
                                         {(() => {
                                             const history = aiStatsData.training.history;
-                                            
+
                                             if (history.length === 0) {
                                                 return (
                                                     <div style={{
@@ -2339,7 +2447,7 @@ const Game = () => {
                                                                                 Step {point.step}: ML {(point.mlWinRate * 100).toFixed(1)}%
                                                                             </title>
                                                                         </circle>
-                                                                        
+
                                                                         {/* Baseline point */}
                                                                         <circle
                                                                             cx={`${x}%`}
@@ -2557,6 +2665,22 @@ const Game = () => {
                     </div>
                 ))}
             </div>
+
+            {/* Probability Tree Toggle + Panel */}
+            <button
+                className="prob-tree-toggle"
+                onClick={() => setShowProbabilityTree(s => !s)}
+                aria-pressed={showProbabilityTree}
+            >
+                {showProbabilityTree ? 'Hide Probability Tree' : 'Show Probability Tree'}
+            </button>
+            {showProbabilityTree && (
+                <ProbabilityTree
+                    gameState={gameState}
+                    myPlayerId={myPlayer?.id}
+                    onClose={() => setShowProbabilityTree(false)}
+                />
+            )}
 
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <canvas
@@ -2924,7 +3048,9 @@ const Game = () => {
                     <div className="top-banner" style={{ borderColor: myPlayer.color }}>
                         <div className="banner-content">
                             <span className="banner-label">YOU ARE</span>
-                            <span className="banner-player" style={{ color: myPlayer.color }}>PLAYER {myPlayer.id.substr(0, 4)}</span>
+                            <span className="banner-player" style={{ color: myPlayer.color }}>
+                                {myPlayer.username || `Player ${myPlayer.id.substr(0, 4)}`}
+                            </span>
                         </div>
                         <div className="turn-info">
                             {gameState.gameMode === 'live' ? (
@@ -2938,6 +3064,19 @@ const Game = () => {
                                         Turn #{gameState.turnNumber || 1}
                                         {gameState.movementMode === 'manual' && (
                                             <span className="mode-badge manual">MANUAL MODE</span>
+                                        )}
+                                        {gameState.gamePhase && gameState.gamePhase.phase > 1 && (
+                                            <span
+                                                className="mode-badge phase-indicator"
+                                                style={{
+                                                    backgroundColor: gameState.gamePhase.color,
+                                                    marginLeft: '8px',
+                                                    animation: 'pulse 2s ease-in-out infinite'
+                                                }}
+                                                title={gameState.gamePhase.description}
+                                            >
+                                                {gameState.gamePhase.name}
+                                            </span>
                                         )}
                                     </div>
                                     {gameState.currentTurn === socket.id ? (
@@ -3140,7 +3279,12 @@ const Game = () => {
                         </h2>
                         {endState.winnerId && (
                             <p className="end-subtitle">
-                                Winner: <span>PLAYER {endState.winnerId.substr(0, 4)}</span>
+                                Winner:{' '}
+                                <span>
+                                    {endState.winnerName ||
+                                        gameState.players?.[endState.winnerId]?.username ||
+                                        `Player ${endState.winnerId.substr(0, 4)}`}
+                                </span>
                             </p>
                         )}
                         {!endState.winnerId && (

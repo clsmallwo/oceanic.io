@@ -38,8 +38,8 @@ function validateUsername(username) {
 }
 
 function sanitizeUsername(username) {
-    if (!username || typeof username !== 'string') return `Player${Math.random().toString(36).substr(2, 4)}`;
-    return username.trim().substr(0, 20).replace(/[^a-zA-Z0-9\s\-_]/g, '') || `Player${Math.random().toString(36).substr(2, 4)}`;
+    if (!username || typeof username !== 'string') return `Player ${Math.random().toString(36).substr(2, 4)}`;
+    return username.trim().substr(0, 20).replace(/[^a-zA-Z0-9\s\-_]/g, '') || `Player ${Math.random().toString(36).substr(2, 4)}`;
 }
 
 function validateGameId(gameId) {
@@ -293,7 +293,7 @@ async function loadMLModel() {
         }
 
         const modelData = JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'));
-        
+
         if (!modelData.weights || modelData.weights.length === 0) {
             console.log('⚠️ No weights in ML model file.');
             return null;
@@ -301,20 +301,20 @@ async function loadMLModel() {
 
         // Build the model architecture based on weight shapes
         const model = tf.sequential();
-        
+
         // Input layer -> Hidden layer 1 (17 -> 32)
         model.add(tf.layers.dense({
             units: 32,
             activation: 'relu',
             inputShape: [17]
         }));
-        
+
         // Hidden layer 1 -> Hidden layer 2 (32 -> 16)
         model.add(tf.layers.dense({
             units: 16,
             activation: 'relu'
         }));
-        
+
         // Output layer (16 -> 1)
         model.add(tf.layers.dense({
             units: 1,
@@ -327,9 +327,9 @@ async function loadMLModel() {
             const tensor = tf.tensor(weightData.values, weightData.shape);
             weightTensors.push(tensor);
         }
-        
+
         model.setWeights(weightTensors);
-        
+
         console.log('✅ TensorFlow model loaded successfully');
         return model;
     } catch (error) {
@@ -343,7 +343,7 @@ function extractGameFeatures(game, aiPlayer, card, targetBase = null) {
     const enemies = Object.values(game.players).filter(p => p.id !== aiPlayer.id && !p.eliminated);
     const myTroops = game.troops.filter(t => t.ownerId === aiPlayer.id);
     const enemyTroops = game.troops.filter(t => t.ownerId !== aiPlayer.id);
-    
+
     // Normalize values to 0-1 range
     const features = [
         aiPlayer.baseHp / 1000,                                      // 0: My base HP (0-1)
@@ -367,7 +367,7 @@ function extractGameFeatures(game, aiPlayer, card, targetBase = null) {
             return dist < 8;
         }).length / 10
     ];
-    
+
     return features;
 }
 
@@ -387,11 +387,11 @@ async function predictCardScore(game, aiPlayer, card, targetBase = null) {
         const inputTensor = tf.tensor2d([features], [1, 17]);
         const prediction = mlModel.predict(inputTensor);
         const score = (await prediction.data())[0];
-        
+
         // Cleanup tensors
         inputTensor.dispose();
         prediction.dispose();
-        
+
         return score;
     } catch (error) {
         console.error('Error predicting card score:', error);
@@ -409,7 +409,7 @@ async function saveMLModel() {
 
         const weights = mlModel.getWeights();
         const weightsData = [];
-        
+
         for (const weight of weights) {
             const values = await weight.data();
             weightsData.push({
@@ -472,7 +472,7 @@ async function trainMLModelWithData(trainingData) {
 
         const finalLoss = history.history.loss[history.history.loss.length - 1];
         const finalAcc = history.history.acc ? history.history.acc[history.history.acc.length - 1] : 0;
-        
+
         console.log(`✅ Training complete - Loss: ${finalLoss.toFixed(4)}, Accuracy: ${(finalAcc * 100).toFixed(1)}%`);
 
         // Cleanup tensors
@@ -603,7 +603,7 @@ function recordGameOutcome(gameId, winner) {
     });
 
     // Save statistics
-        saveAIStats(aiStats);
+    saveAIStats(aiStats);
     console.log(`📊 Updated AI statistics: ${aiStats.wins}/${aiStats.totalGames} wins (${((aiStats.wins / aiStats.totalGames) * 100).toFixed(1)}% win rate)`);
 
 }
@@ -616,13 +616,13 @@ const GRID_SIZE = 40; // 40x40 grid
 const CELL_SIZE = 50; // 50px per cell = 1000x1000 map
 const TURN_DURATION = 30; // 30 seconds per turn
 
-// Calculate win probability for AI players based on statistics and game state
+// Calculate win probability for all players based on statistics and game state
 function calculateWinProbability(game, playerId) {
     // Validate inputs
     if (!game || !playerId || !game.players) return null;
 
     const player = game.players[playerId];
-    if (!player || !player.isAI) return null;
+    if (!player || player.eliminated) return null;
 
     // Validate player stats
     if (typeof player.baseHp !== 'number' || isNaN(player.baseHp) || player.baseHp < 0) {
@@ -737,20 +737,386 @@ function calculateWinProbability(game, playerId) {
     };
 }
 
+// AP Stats-based win probability model (see STRATEGY_GUIDE_AP_STATS.md)
+// This is intentionally derived from *actual* in-game troop stats (hp/damage/speed/range),
+// plus simplified AP-stat heuristics (efficiency, waves, proximity, phase/erosion).
+function calculateWinProbabilityAP(game, playerId) {
+    if (!game || !playerId || !game.players) return null;
+    const player = game.players[playerId];
+    if (!player || player.eliminated) return null;
+
+    const maxHp = 1000;
+    const aliveOpponentIds = Object.keys(game.players).filter(id => {
+        const p = game.players[id];
+        return p && !p.eliminated && id !== playerId;
+    });
+    if (aliveOpponentIds.length === 0) {
+        return { probability: 1, percentage: '100.0', factors: [{ name: 'No Opponents', value: 'Only player alive' }], model: 'ap' };
+    }
+
+    const clamp01 = (v) => clamp(v, 0, 1);
+    const baseHp = clamp(player.baseHp || 0, 0, maxHp);
+    const baseHpPct = clamp01(baseHp / maxHp);
+
+    const troops = Array.isArray(game.troops) ? game.troops : [];
+    const myTroops = troops.filter(t => t && t.ownerId === playerId);
+    const myOffense = myTroops.filter(t => t.type === 'offense');
+    const myDefense = myTroops.filter(t => t.type === 'defense');
+
+    const sum = (arr, fn) => arr.reduce((acc, x) => acc + (fn(x) || 0), 0);
+    const myOffenseDps = sum(myOffense, t => t.damage);
+    const myOffenseHp = sum(myOffense, t => t.hp);
+    const myDefenseHp = sum(myDefense, t => t.hp);
+    const myAvgOffSpeed = myOffense.length > 0 ? (sum(myOffense, t => t.speed) / myOffense.length) : 0;
+
+    // Identify primary target (most common targetBaseId among offense troops), if any.
+    const targetCounts = new Map();
+    for (const t of myOffense) {
+        if (!t.targetBaseId) continue;
+        targetCounts.set(t.targetBaseId, (targetCounts.get(t.targetBaseId) || 0) + 1);
+    }
+    let primaryTargetId = null;
+    let primaryTargetCount = 0;
+    for (const [tid, cnt] of targetCounts.entries()) {
+        if (cnt > primaryTargetCount) {
+            primaryTargetId = tid;
+            primaryTargetCount = cnt;
+        }
+    }
+
+    // Estimate "wave" size as current active offensive troops.
+    const waveN = clamp(myOffense.length, 0, 10);
+
+    // Compute a baseline per-unit "gets through" probability p from actual game values:
+    // - hp and speed of offensive troops (or offensive card stats)
+    // - current distances to target bases
+    // - current enemy offensive DPS (threat), weighted by who is targeting this player
+    //
+    // Since the real sim is deterministic, we model *uncertainty* as a soft survivability score:
+    //   survivability = hp / (hp + expectedIncomingDamageOverTravel)
+    // where expectedIncomingDamageOverTravel = perTroopThreatDps * travelTurns.
+    //
+    // This converts real game quantities into a stable 0..1 "probability-like" value.
+    const aliveOpponentSet = new Set(aliveOpponentIds);
+    const enemyTroops = troops.filter(t => t && t.ownerId && aliveOpponentSet.has(t.ownerId));
+    const enemyOffenseTroops = enemyTroops.filter(t => t.type === 'offense');
+    const enemyOffDpsTotal = sum(enemyOffenseTroops, t => t.damage);
+    const enemyOffDpsTargetingMe = sum(
+        enemyOffenseTroops.filter(t => t.targetBaseId === playerId),
+        t => t.damage
+    );
+    // If enemies are explicitly targeting this base, treat their DPS as more likely to pressure us.
+    const threatDps = enemyOffDpsTargetingMe + 0.5 * (enemyOffDpsTotal - enemyOffDpsTargetingMe);
+    const waveNForP = Math.max(1, waveN);
+    const perTroopThreatDps = threatDps / waveNForP;
+
+    const getClosestOpponentId = (gx, gy) => {
+        let bestId = aliveOpponentIds[0];
+        let bestDist = Infinity;
+        for (const oppId of aliveOpponentIds) {
+            const opp = game.players[oppId];
+            if (!opp) continue;
+            const d = Math.abs((opp.gridX || 0) - gx) + Math.abs((opp.gridY || 0) - gy);
+            if (d < bestDist) {
+                bestDist = d;
+                bestId = oppId;
+            }
+        }
+        return bestId;
+    };
+
+    const avgDistFromBase = (() => {
+        if (primaryTargetId && game.players[primaryTargetId]) {
+            const tgt = game.players[primaryTargetId];
+            return Math.abs((tgt.gridX || 0) - (player.gridX || 0)) + Math.abs((tgt.gridY || 0) - (player.gridY || 0));
+        }
+        let sumDist = 0;
+        for (const oppId of aliveOpponentIds) {
+            const opp = game.players[oppId];
+            sumDist += Math.abs((opp.gridX || 0) - (player.gridX || 0)) + Math.abs((opp.gridY || 0) - (player.gridY || 0));
+        }
+        return sumDist / Math.max(1, aliveOpponentIds.length);
+    })();
+
+    const survivabilityFrom = (hp, speed, distTiles) => {
+        const v = Math.max(0.5, speed || 0.5);
+        const travelTurns = clamp(distTiles / v, 1, 25);
+        const expectedIncoming = perTroopThreatDps * travelTurns;
+        return clamp01(hp / Math.max(1, hp + expectedIncoming));
+    };
+
+    // Prefer using *actual deployed* offensive troops; fall back to averaging offensive card stats.
+    let unitReachP = null;
+    let unitReachDetails = null;
+    if (myOffense.length > 0) {
+        const perTroop = myOffense.map(t => {
+            const targetId = t.targetBaseId && game.players[t.targetBaseId] && !game.players[t.targetBaseId].eliminated
+                ? t.targetBaseId
+                : getClosestOpponentId(t.gridX || player.gridX || 0, t.gridY || player.gridY || 0);
+            const tgt = game.players[targetId];
+            const dist = tgt
+                ? Math.abs((tgt.gridX || 0) - (t.gridX || 0)) + Math.abs((tgt.gridY || 0) - (t.gridY || 0))
+                : avgDistFromBase;
+            const p = survivabilityFrom(t.hp || 1, t.speed || 1, dist);
+            return { troopId: t.id, cardId: t.cardId, hp: t.hp, speed: t.speed, distTiles: dist, p };
+        });
+        unitReachP = clamp01(perTroop.reduce((a, b) => a + b.p, 0) / perTroop.length);
+        unitReachDetails = { method: 'activeWave', threatDps, perTroopThreatDps, waveNForP, perTroop };
+    } else {
+        const offenseCards = CARDS.filter(c => c && c.type === 'offense' && !c.isLegendary);
+        const perCard = offenseCards.map(c => {
+            const p = survivabilityFrom(c.hp || 1, c.speed || 1, avgDistFromBase);
+            return { cardId: c.id, hp: c.hp, speed: c.speed, distTiles: avgDistFromBase, p };
+        });
+        unitReachP = clamp01(perCard.reduce((a, b) => a + b.p, 0) / Math.max(1, perCard.length));
+        unitReachDetails = { method: 'cardAverage', threatDps, perTroopThreatDps, waveNForP, avgDistFromBase, perCard };
+    }
+    const binomAtLeast2 = (n, p) => {
+        if (n <= 0) return 0;
+        if (n === 1) return 0;
+        const q = 1 - p;
+        // 1 - [P(0) + P(1)]
+        const p0 = Math.pow(q, n);
+        const p1 = n * p * Math.pow(q, n - 1);
+        return clamp01(1 - (p0 + p1));
+    };
+    const breakthroughP = binomAtLeast2(Math.min(waveN, 5), unitReachP);
+
+    // Quadrant helper for "adjacent vs diagonal" (corners).
+    const half = GRID_SIZE / 2;
+    const quadrant = (p) => {
+        const east = (p.gridX || 0) >= half;
+        const south = (p.gridY || 0) >= half;
+        // 0: NW, 1: NE, 2: SW, 3: SE
+        if (!east && !south) return 0;
+        if (east && !south) return 1;
+        if (!east && south) return 2;
+        return 3;
+    };
+    const isAdjacentQuadrant = (qA, qB) => {
+        if (qA === qB) return false;
+        const ax = (qA === 1 || qA === 3) ? 1 : 0;
+        const ay = (qA === 2 || qA === 3) ? 1 : 0;
+        const bx = (qB === 1 || qB === 3) ? 1 : 0;
+        const by = (qB === 2 || qB === 3) ? 1 : 0;
+        // adjacent if shares x or y side but not both
+        return (ax === bx) !== (ay === by);
+    };
+
+    // Proximity -> arrival probability in ~5 turns (smooth logistic).
+    const arrivalProb = (distTurns, adjacentBoost) => {
+        const t = distTurns - (adjacentBoost ? 5.5 : 6.5);
+        const k = 1.6;
+        const p = 1 / (1 + Math.exp(t / k));
+        return clamp01(p);
+    };
+
+    const myQuad = quadrant(player);
+
+    const matchupDetails = [];
+    const matchupPs = aliveOpponentIds.map(oppId => {
+        const opp = game.players[oppId];
+        const oppTroops = troops.filter(t => t && t.ownerId === oppId);
+        const oppOffense = oppTroops.filter(t => t.type === 'offense');
+        const oppDefense = oppTroops.filter(t => t.type === 'defense');
+
+        const oppOffDps = sum(oppOffense, t => t.damage);
+        const oppDefHp = sum(oppDefense, t => t.hp);
+        const oppBaseHp = clamp(opp.baseHp || 0, 0, maxHp);
+
+        // Expected survival turns of *our* offense vs their offense pressure.
+        const survivalTurns = clamp(myOffenseHp / Math.max(30, oppOffDps), 2, 25);
+        const expectedDamage = myOffenseDps * survivalTurns;
+        const denom = expectedDamage + oppDefHp + oppBaseHp;
+        let pBeat = denom > 0 ? expectedDamage / denom : 0.5;
+        const beforeProx = pBeat;
+
+        // If this opponent is our primary target, incorporate proximity.
+        let prox = null;
+        if (primaryTargetId && primaryTargetId === oppId) {
+            const dist = Math.abs((player.gridX || 0) - (opp.gridX || 0)) + Math.abs((player.gridY || 0) - (opp.gridY || 0));
+            const distTurns = dist / Math.max(1, myAvgOffSpeed || 1);
+            const adj = isAdjacentQuadrant(myQuad, quadrant(opp));
+            const arrive = arrivalProb(distTurns, adj);
+            prox = { dist, distTurns, adjacent: adj, arrive };
+            // Blend in arrival chance modestly (AP-stats "adjacent > diagonal" guidance)
+            pBeat = clamp01(pBeat * 0.85 + arrive * 0.15);
+        }
+
+        matchupDetails.push({
+            opponentId: oppId,
+            opponentName: opp.username || `Player ${String(oppId).substr(0, 4)}`,
+            oppOffDps,
+            oppDefHp,
+            oppBaseHp,
+            survivalTurns,
+            expectedDamage,
+            denom,
+            pBeatBeforeProximity: beforeProx,
+            pBeatAfterProximity: pBeat,
+            proximity: prox
+        });
+
+        return clamp01(pBeat);
+    });
+
+    const avgMatchup = matchupPs.reduce((a, b) => a + b, 0) / matchupPs.length;
+
+    // Hand efficiency proxy (best offense EV from hand; damage/elixir).
+    let bestOffenseEV = null;
+    if (Array.isArray(player.hand) && player.hand.length > 0) {
+        for (const c of player.hand) {
+            if (!c || c.type !== 'offense') continue;
+            const ev = (c.damage || 0) / Math.max(1, c.cost || 1);
+            if (bestOffenseEV === null || ev > bestOffenseEV) bestOffenseEV = ev;
+        }
+    }
+    const evScore = bestOffenseEV === null ? 0.5 : clamp01(bestOffenseEV / 50); // 50 dmg/elixir ~= "elite" (Jellyfish)
+
+    // Phase / erosion pressure indicator
+    const turn = game.turnNumber || 0;
+    const phase = getGamePhase(game);
+    let erosionPerTurnPct = 0;
+    if (turn > 160 && turn <= 190) erosionPerTurnPct = 0.02;
+    if (turn > 190) erosionPerTurnPct = 0.05;
+
+    // Final AP-based probability: base survivability + matchup strength + wave pressure + efficiency.
+    let winProb = 0.40 * baseHpPct + 0.40 * avgMatchup + 0.12 * breakthroughP + 0.08 * evScore;
+    winProb = clamp01(winProb);
+
+    const explain = {
+        model: 'AP Stats',
+        notes: 'Derived from actual troop stats + AP-style heuristics. This is an explainable heuristic, not a Monte Carlo simulation.',
+        inputs: {
+            maxHp,
+            baseHp,
+            baseHpPct,
+            myOffenseDps,
+            myOffenseHp,
+            myDefenseHp,
+            myAvgOffSpeed,
+            waveN,
+            unitReachP,
+            unitReachDetails,
+            breakthroughP,
+            bestOffenseEV: bestOffenseEV,
+            evScore,
+            turn,
+            phase: phase?.name || null,
+            erosionPerTurnPct,
+            primaryTargetId,
+            matchupDetails,
+            avgMatchup
+        },
+        steps: [
+            {
+                key: 'baseHpPct',
+                title: 'Base HP percent',
+                formula: 'baseHpPct = clamp(baseHp / maxHp, 0, 1)',
+                substitution: `clamp(${baseHp} / ${maxHp}, 0, 1)`,
+                result: baseHpPct
+            },
+            {
+                key: 'offenseDps',
+                title: 'Offense DPS',
+                formula: 'myOffenseDps = Σ(offenseTroop.damage)',
+                substitution: `Σ(offenseTroop.damage) = ${Math.round(myOffenseDps)}`,
+                result: myOffenseDps
+            },
+            {
+                key: 'breakthrough',
+                title: 'Wave breakthrough probability (binomial)',
+                meaning: 'Represents the chance that at least 2 offensive units in your current wave “get through” (survive long enough to matter). Here p is computed from actual game quantities (HP, speed, distance-to-target, and current enemy offensive DPS), not a hard-coded constant.',
+                formula: 'First compute per-unit p via survivability = hp / (hp + perTroopThreatDps·travelTurns), then model X ~ Binomial(n, p) and compute P(X ≥ 2) = 1 - P(0) - P(1).',
+                substitution: `p=${unitReachP.toFixed(3)} (computed); n=min(${waveN}, 5)=${Math.min(waveN, 5)}; P(X≥2)=${(breakthroughP * 100).toFixed(1)}%`,
+                result: breakthroughP
+            },
+            {
+                key: 'efficiency',
+                title: 'Best hand efficiency (damage/elixir)',
+                formula: 'bestOffenseEV = max(offenseCard.damage / offenseCard.cost); evScore = clamp(bestOffenseEV / 50, 0, 1)',
+                substitution: bestOffenseEV === null
+                    ? 'No offensive cards in hand → evScore=0.5 (neutral)'
+                    : `bestOffenseEV=${bestOffenseEV.toFixed(2)}; evScore=clamp(${bestOffenseEV.toFixed(2)}/50,0,1)=${evScore.toFixed(3)}`,
+                result: evScore
+            },
+            {
+                key: 'matchups',
+                title: 'Matchup strength vs each opponent',
+                formula: 'survivalTurns = clamp(myOffenseHp / max(30, oppOffDps), 2, 25); expectedDamage = myOffenseDps·survivalTurns; pBeat = expectedDamage / (expectedDamage + oppDefHp + oppBaseHp); if primaryTarget: pBeat = 0.85·pBeat + 0.15·arrivalProb',
+                substitution: `avgMatchup = mean(pBeat over opponents) = ${avgMatchup.toFixed(3)}`,
+                result: avgMatchup
+            },
+            {
+                key: 'final',
+                title: 'Final win probability (weighted)',
+                formula: 'winProb = clamp(0.40·baseHpPct + 0.40·avgMatchup + 0.12·breakthroughP + 0.08·evScore, 0, 1)',
+                substitution: `clamp(0.40·${baseHpPct.toFixed(3)} + 0.40·${avgMatchup.toFixed(3)} + 0.12·${breakthroughP.toFixed(3)} + 0.08·${evScore.toFixed(3)}, 0, 1)`,
+                result: winProb
+            }
+        ]
+    };
+
+    const factors = [];
+    factors.push({ name: 'Model', value: 'AP Stats (troop stats + efficiency + waves + proximity + phase)' });
+    factors.push({ name: 'Base HP', value: `${Math.ceil(baseHp)}/${maxHp}` });
+    factors.push({ name: 'Offense DPS', value: `${Math.round(myOffenseDps)} / turn` });
+    factors.push({ name: 'Offense HP', value: `${Math.round(myOffenseHp)} total` });
+    factors.push({ name: 'Defense HP', value: `${Math.round(myDefenseHp)} total` });
+    factors.push({ name: 'Wave Size (offense)', value: `${waveN}` });
+    factors.push({ name: 'Breakthrough P(X≥2)', value: `${(breakthroughP * 100).toFixed(1)}% (p=${unitReachP.toFixed(3)} each)` });
+    if (bestOffenseEV !== null) {
+        factors.push({ name: 'Best Hand EV (damage/elixir)', value: `${bestOffenseEV.toFixed(1)}` });
+    } else {
+        factors.push({ name: 'Best Hand EV (damage/elixir)', value: '—' });
+    }
+    if (primaryTargetId && game.players[primaryTargetId]) {
+        const tgt = game.players[primaryTargetId];
+        const dist = Math.abs((player.gridX || 0) - (tgt.gridX || 0)) + Math.abs((player.gridY || 0) - (tgt.gridY || 0));
+        const distTurns = dist / Math.max(1, myAvgOffSpeed || 1);
+        const adj = isAdjacentQuadrant(myQuad, quadrant(tgt));
+        factors.push({ name: 'Primary Target', value: `${tgt.username || `Player ${String(tgt.id).substr(0, 4)}`} (${adj ? 'Adjacent' : 'Diagonal'})` });
+        factors.push({ name: 'Target Distance', value: `${dist} tiles (~${distTurns.toFixed(1)} turns @ v=${myAvgOffSpeed.toFixed(1) || '—'})` });
+    }
+    factors.push({ name: 'Game Phase', value: `${phase?.name || '—'}` });
+    if (erosionPerTurnPct > 0) {
+        factors.push({ name: 'Erosion / turn', value: `${Math.round(erosionPerTurnPct * 100)}%` });
+    }
+
+    return {
+        probability: winProb,
+        percentage: (winProb * 100).toFixed(1),
+        factors,
+        explain,
+        model: 'ap'
+    };
+}
+
 // Helper function to serialize game state (convert Sets to arrays)
 function serializeGameState(game) {
     const serialized = {
         ...game,
         movedTroops: Array.from(game.movedTroops || []),
-        aiWinProbabilities: {}
+        aiWinProbabilities: {},
+        aiWinProbabilitiesAP: {},
+        gamePhase: getGamePhase(game) // Add phase info for UI
     };
 
-    // Calculate win probabilities for all AI players
+    // FINAL CLEANUP: Filter out troops from eliminated players before sending to client
+    if (serialized.troops && Array.isArray(serialized.troops)) {
+        serialized.troops = serialized.troops.filter(troop => {
+            const owner = game.players[troop.ownerId];
+            return owner && !owner.eliminated;
+        });
+    }
+
+    // Calculate win probabilities for ALL players (both human and AI)
     if (game.status === 'playing') {
         Object.keys(game.players).forEach(playerId => {
             const player = game.players[playerId];
-            if (player && player.isAI) {
+            if (player && !player.eliminated) {
                 serialized.aiWinProbabilities[playerId] = calculateWinProbability(game, playerId);
+                serialized.aiWinProbabilitiesAP[playerId] = calculateWinProbabilityAP(game, playerId);
             }
         });
     }
@@ -758,7 +1124,24 @@ function serializeGameState(game) {
     return serialized;
 }
 
-// AI Player Logic - Makes AI play intelligently
+// Get current game phase info for UI display
+function getGamePhase(game) {
+    const turn = game.turnNumber || 0;
+    if (turn <= 80) {
+        return { phase: 1, name: 'Early Game', color: '#4CAF50', description: 'Normal gameplay' };
+    }
+    if (turn <= 120) {
+        return { phase: 2, name: 'Escalation', color: '#FFC107', description: 'Troop damage +10%' };
+    }
+    if (turn <= 160) {
+        return { phase: 3, name: 'Pressure', color: '#FF9800', description: 'Troop damage +25%, Random events' };
+    }
+    if (turn <= 190) {
+        return { phase: 4, name: 'Crisis', color: '#FF5722', description: 'Troop damage +50%, Base erosion' };
+    }
+    return { phase: 5, name: 'ENDGAME', color: '#F44336', description: 'Troop damage +100%, Forced conclusion' };
+}
+
 // AI Player Logic - Makes AI play intelligently
 async function makeAIMoves(gameId, aiPlayerId) {
     const game = games[gameId];
@@ -963,6 +1346,14 @@ async function makeAIMoves(gameId, aiPlayerId) {
         // Execute Move
         aiPlayer.elixir -= selectedCard.cost;
 
+        // Ensure AI units never spawn on an occupied tile
+        const aiSpawnPos = findNearestUnoccupiedPosition(game, spawnGridX, spawnGridY, 5);
+
+        // Calculate damage with current game acceleration multiplier
+        const damageMultiplier = getCurrentDamageMultiplier(game);
+        const baseDamage = selectedCard.damage;
+        const actualDamage = Math.floor(baseDamage * damageMultiplier);
+
         const troop = {
             id: `troop_${Date.now()}_${Math.random()}`,
             ownerId: aiPlayerId,
@@ -970,13 +1361,15 @@ async function makeAIMoves(gameId, aiPlayerId) {
             name: selectedCard.name,
             type: selectedCard.type, // Keep original type for stats, but behavior might vary
             color: aiPlayer.color,
-            gridX: spawnGridX,
-            gridY: spawnGridY,
-            x: spawnGridX * CELL_SIZE + CELL_SIZE / 2,
-            y: spawnGridY * CELL_SIZE + CELL_SIZE / 2,
+            gridX: aiSpawnPos.gridX,
+            gridY: aiSpawnPos.gridY,
+            x: aiSpawnPos.gridX * CELL_SIZE + CELL_SIZE / 2,
+            y: aiSpawnPos.gridY * CELL_SIZE + CELL_SIZE / 2,
             hp: selectedCard.hp,
             maxHp: selectedCard.hp,
-            damage: selectedCard.damage,
+            damage: actualDamage,
+            baseDamage: baseDamage,
+            damageBoostApplied: damageMultiplier,
             speed: selectedCard.speed,
             range: selectedCard.range,
             targetBaseId: targetBaseId,
@@ -1031,12 +1424,12 @@ async function selectCardByStats(game, aiPlayer, availableCards, preferredType, 
 
     // Calculate scores for each card
     let cardScores;
-    
+
     if (mlMode && mlModel) {
         // ML MODE: Use TensorFlow model predictions
         cardScores = await Promise.all(filteredCards.map(async (card) => {
             const score = await predictCardScore(game, aiPlayer, card, targetBase);
-            
+
             // Record training data if this is a training game
             if (game.isTrainingGame && game.trainingData) {
                 const features = extractGameFeatures(game, aiPlayer, card, targetBase);
@@ -1046,26 +1439,26 @@ async function selectCardByStats(game, aiPlayer, availableCards, preferredType, 
                     cardId: card.id
                 });
             }
-            
+
             return { card, score };
         }));
     } else {
         // BASELINE: Use historical statistics
         cardScores = filteredCards.map(card => {
             const stats = aiStats.cardUsage ? aiStats.cardUsage[card.id] : null;
-            if (!stats || stats.played < 3) {
-                // Not enough data, use base stats
-                return { card, score: 0.5 + Math.random() * 0.2 }; // Slight random preference
-            }
+        if (!stats || stats.played < 3) {
+            // Not enough data, use base stats
+            return { card, score: 0.5 + Math.random() * 0.2 }; // Slight random preference
+        }
 
-            const winRate = stats.wins / (stats.wins + stats.losses);
-            const confidence = Math.min(stats.played / 20, 1); // More confidence with more data
+        const winRate = stats.wins / (stats.wins + stats.losses);
+        const confidence = Math.min(stats.played / 20, 1); // More confidence with more data
 
-            // Score based on win rate, weighted by confidence
-            const score = winRate * confidence + 0.5 * (1 - confidence);
+        // Score based on win rate, weighted by confidence
+        const score = winRate * confidence + 0.5 * (1 - confidence);
 
-            return { card, score };
-        });
+        return { card, score };
+    });
     }
 
     // Sort by score
@@ -1086,18 +1479,18 @@ async function selectCardByStats(game, aiPlayer, availableCards, preferredType, 
         return topCards[0]?.card || filteredCards[0];
     } else {
         // Baseline: more random selection (50% best, 30% second, 20% third)
-        const topCards = cardScores.slice(0, 3);
-        const rand = Math.random();
+    const topCards = cardScores.slice(0, 3);
+    const rand = Math.random();
 
         if (rand < 0.5 && topCards[0]) {
-            return topCards[0].card;
+        return topCards[0].card;
         } else if (rand < 0.8 && topCards[1]) {
-            return topCards[1].card;
-        } else if (topCards[2]) {
-            return topCards[2].card;
-        }
+        return topCards[1].card;
+    } else if (topCards[2]) {
+        return topCards[2].card;
+    }
 
-        return topCards[0]?.card || filteredCards[0];
+    return topCards[0]?.card || filteredCards[0];
     }
 }
 
@@ -1166,57 +1559,40 @@ async function selectCounterCard(game, aiPlayer, threat, availableCards, mlMode 
 }
 
 // Strategic target selection
+// Design: OFFENSIVE units should always focus on enemy CASTLES (bases),
+// not chase defensive troops or "revenge" attackers. They can still deal
+// damage to enemy troops that come into range, but their primary goal is
+// to walk straight for a chosen enemy base.
 function selectStrategicTarget(game, aiPlayer, enemies) {
-    // Filter enemies to only neighboring players or those in allowed 180-degree arc
-    const allowedEnemies = enemies.filter(enemy =>
-        isNeighboringPlayer(aiPlayer.gridX, aiPlayer.gridY, enemy.gridX, enemy.gridY) ||
-        isAllowedDirection(aiPlayer.gridX, aiPlayer.gridY, enemy.gridX, enemy.gridY)
+    if (!enemies || enemies.length === 0) return null;
+
+    // 1) Prefer the base directly across from us (primary "castle" target)
+    // if such an enemy exists on the opposite side of the map.
+    const acrossTargets = enemies.filter(enemy =>
+        isAcrossFromBase(aiPlayer, { gridX: enemy.gridX, gridY: enemy.gridY })
     );
-
-    const validTargets = allowedEnemies.length > 0 ? allowedEnemies : enemies; // Fallback to all if none in arc
-
-    if (validTargets.length === 0) return enemies[0]; // Safety fallback
-
-    // Also consider who is attacking us (revenge/defense) - highest priority
-    const attackers = validTargets.filter(e =>
-        game.troops.some(t => t.ownerId === e.id && t.targetBaseId === aiPlayer.id)
-    );
-
-    if (attackers.length > 0 && Math.random() < 0.7) {
-        return attackers[0];
+    if (acrossTargets.length > 0) {
+        return acrossTargets[0];
     }
 
-    // More balanced targeting: consider multiple factors, not just weakest
-    // Score each target based on threat level, distance, and HP
-    const scoredTargets = validTargets.map(enemy => {
-        let score = 0;
+    // 2) Otherwise, pick the enemy base with the LOWEST HP,
+    // breaking ties by choosing the one closest in grid distance.
+    let bestEnemy = enemies[0];
+    let bestHp = typeof bestEnemy.baseHp === 'number' ? bestEnemy.baseHp : Infinity;
+    let bestDist = Math.abs(bestEnemy.gridX - aiPlayer.gridX) + Math.abs(bestEnemy.gridY - aiPlayer.gridY);
 
-        // Factor 1: Base HP (weaker = higher priority, but not exclusive)
-        score += (1000 - enemy.baseHp) * 0.3;
+    enemies.forEach(enemy => {
+        const hp = typeof enemy.baseHp === 'number' ? enemy.baseHp : 1000;
+        const dist = Math.abs(enemy.gridX - aiPlayer.gridX) + Math.abs(enemy.gridY - aiPlayer.gridY);
 
-        // Factor 2: Distance (closer = easier to reach)
-        const distance = Math.abs(enemy.gridX - aiPlayer.gridX) + Math.abs(enemy.gridY - aiPlayer.gridY);
-        score += (40 - distance) * 0.2;
-
-        // Factor 3: Number of troops attacking them (if many, they're vulnerable)
-        const troopsAttacking = game.troops.filter(t => t.targetBaseId === enemy.id && t.ownerId !== aiPlayer.id).length;
-        score += troopsAttacking * 10;
-
-        // Factor 4: Random variation to prevent always targeting same player
-        score += Math.random() * 50;
-
-        return { enemy, score };
+        if (hp < bestHp || (hp === bestHp && dist < bestDist)) {
+            bestEnemy = enemy;
+            bestHp = hp;
+            bestDist = dist;
+        }
     });
 
-    // Sort by score and pick top candidate (with some randomness)
-    scoredTargets.sort((a, b) => b.score - a.score);
-
-    // 80% chance to pick top target, 20% chance to pick from top 2
-    if (Math.random() < 0.8 || scoredTargets.length === 1) {
-        return scoredTargets[0].enemy;
-    } else {
-        return scoredTargets[Math.floor(Math.random() * Math.min(2, scoredTargets.length))].enemy;
-    }
+    return bestEnemy;
 }
 
 // Smart defensive positioning
@@ -1309,9 +1685,6 @@ function isValidSpawn(game, x, y) {
     const trenchSet = new Set(game.terrain.trench.map(t => `${t.x},${t.y}`));
     if (trenchSet.has(`${x},${y}`)) return false;
 
-    // Check if position is occupied by any troop
-    if (isPositionOccupied(game, x, y)) return false;
-
     return true;
 }
 
@@ -1399,8 +1772,7 @@ const CARDS = [
     { id: 'turtle', name: 'Turtle', type: 'defense', cost: 7, hp: 400, damage: 10, speed: 2.6, range: 4, color: '#32CD32', isWall: false },
     { id: 'coral_wall', name: 'Coral Wall', type: 'defense', cost: 4, hp: 500, damage: 5, speed: 0, range: 2, color: '#F08080', isWall: true }, // Wall: tons of HP, minimal damage (stays 0)
     { id: 'narwhal', name: 'Narwhal', type: 'defense', cost: 6, hp: 250, damage: 45, speed: 2, range: 5, color: '#E0E0E0', isWall: false }, // Long-range archer
-    { id: 'sea_urchin', name: 'Sea Urchin', type: 'defense', cost: 5, hp: 300, damage: 25, speed: 2.2, range: 2, color: '#8B4789', isWall: false }, // Spiky defender
-    { id: 'turret', name: 'Turret', type: 'defense', cost: 8, hp: 10, damage: 7, speed: 0, range: 9, color: '#FF6B35', isWall: false, isTurret: true } // Stationary long-range turret (3/4 of original range)
+    { id: 'sea_urchin', name: 'Sea Urchin', type: 'defense', cost: 5, hp: 300, damage: 25, speed: 2.2, range: 2, color: '#8B4789', isWall: false } // Spiky defender
 ];
 
 function createGame(gameId) {
@@ -1557,13 +1929,13 @@ io.on('connection', (socket) => {
         // Validate and sanitize username
         let username;
         if (typeof data === 'string') {
-            username = `Player${socket.id.substr(0, 4)}`;
+            username = `Player ${socket.id.substr(0, 4)}`;
         } else {
             const providedUsername = data.username;
             if (providedUsername && validateUsername(providedUsername)) {
                 username = sanitizeUsername(providedUsername);
             } else {
-                username = sanitizeUsername(providedUsername) || `Player${socket.id.substr(0, 4)}`;
+                username = sanitizeUsername(providedUsername) || `Player ${socket.id.substr(0, 4)}`;
             }
         }
 
@@ -1574,7 +1946,8 @@ io.on('connection', (socket) => {
         }
 
         // Check for reconnection
-        if (game.disconnectedPlayers[username]) {
+        try {
+            if (game.disconnectedPlayers && game.disconnectedPlayers[username]) {
             const savedState = game.disconnectedPlayers[username];
             const timeSinceDisconnect = Date.now() - savedState.disconnectTime;
 
@@ -1593,16 +1966,18 @@ io.on('connection', (socket) => {
                 delete game.disconnectedPlayers[username];
 
                 // Update ownership of troops
+                    if (game.troops) {
                 game.troops.forEach(t => {
                     if (t.ownerId === savedState.id) {
                         t.ownerId = socket.id;
                     }
                 });
+                    }
 
                 // Update turn order if game is playing
                 if (game.status === 'playing') {
                     // Add back to turn order if not present
-                    if (!game.turnOrder.includes(socket.id)) {
+                        if (game.turnOrder && !game.turnOrder.includes(socket.id)) {
                         game.turnOrder.push(socket.id);
                     }
                 }
@@ -1618,6 +1993,10 @@ io.on('connection', (socket) => {
                 // Expired
                 delete game.disconnectedPlayers[username];
             }
+            }
+        } catch (err) {
+            console.error('Error during player reconnection:', err);
+            // Fall through to normal join if reconnection fails
         }
 
         // Check if player is already in a game
@@ -2230,6 +2609,15 @@ io.on('connection', (socket) => {
             spawnGridY = player.gridY;
         }
 
+        // Prevent multiple troops from spawning on the same tile by finding
+        // the nearest free position around the intended spawn location.
+        const spawnPos = findNearestUnoccupiedPosition(game, spawnGridX, spawnGridY, 5);
+
+        // Calculate damage with current game acceleration multiplier
+        const damageMultiplier = getCurrentDamageMultiplier(game);
+        const baseDamage = card.damage;
+        const actualDamage = Math.floor(baseDamage * damageMultiplier);
+
         // Spawn troop (grid-aligned)
         const troop = {
             id: Math.random().toString(36).substr(2, 9),
@@ -2239,16 +2627,18 @@ io.on('connection', (socket) => {
             cardId: card.id,
             hp: card.hp,
             maxHp: card.hp,
-            damage: card.damage,
+            damage: actualDamage,
+            baseDamage: baseDamage,
+            damageBoostApplied: damageMultiplier,
             speed: card.speed,
             range: card.range,
             color: card.color,
             isWall: card.isWall || false,
             isTurret: card.isTurret || false,
-            gridX: spawnGridX,
-            gridY: spawnGridY,
-            x: spawnGridX * CELL_SIZE + CELL_SIZE / 2,
-            y: spawnGridY * CELL_SIZE + CELL_SIZE / 2,
+            gridX: spawnPos.gridX,
+            gridY: spawnPos.gridY,
+            x: spawnPos.gridX * CELL_SIZE + CELL_SIZE / 2,
+            y: spawnPos.gridY * CELL_SIZE + CELL_SIZE / 2,
             target: null,
             state: card.type === 'defense' ? 'guarding' : 'moving_to_bridge',
             targetBaseId: targetBaseId || null, // Player-selected target
@@ -2316,41 +2706,47 @@ function isOnCentralBridge(x, y) {
     return onHorizontal || onVertical;
 }
 
-// A* pathfinding with bridge preference
+// Pathfinding: simple breadth-first search over the grid.
+// Offensive troops were previously using an A*-style pathfinder with
+// bridge-weighting, which could produce unintuitive routes or oscillation
+// near bases. This implementation focuses on reliability: always find a
+// shortest passable path (if one exists) from start -> end, only blocking
+// trench tiles via isPassable().
 function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
-    const openSet = [];
-    const closedSet = new Set();
-    const cameFrom = new Map();
-    const gScore = new Map();
-    const fScore = new Map();
-
     const startKey = `${startX},${startY}`;
     const endKey = `${endX},${endY}`;
 
-    openSet.push({ x: startX, y: startY, key: startKey });
-    gScore.set(startKey, 0);
-    fScore.set(startKey, heuristic(startX, startY, endX, endY));
+    // Trivial case: already at target – no movement required
+    if (startKey === endKey) {
+        return [];
+    }
 
-    while (openSet.length > 0) {
-        // Find node with lowest fScore
-        openSet.sort((a, b) => (fScore.get(a.key) || Infinity) - (fScore.get(b.key) || Infinity));
-        const current = openSet.shift();
+    const queue = [];
+    const visited = new Set();
+    const cameFrom = new Map();
 
-        if (current.key === endKey) {
-            // Reconstruct path
+    queue.push({ x: startX, y: startY });
+    visited.add(startKey);
+
+    while (queue.length > 0) {
+        const current = queue.shift();
+        const currentKey = `${current.x},${current.y}`;
+
+        // Reached destination: reconstruct path from end -> start
+        if (currentKey === endKey) {
             const path = [];
-            let curr = endKey;
-            while (cameFrom.has(curr)) {
-                const [x, y] = curr.split(',').map(Number);
-                path.unshift({ x, y });
-                curr = cameFrom.get(curr);
+            let currKey = currentKey;
+
+            while (cameFrom.has(currKey)) {
+                const [px, py] = currKey.split(',').map(Number);
+                path.unshift({ x: px, y: py });
+                currKey = cameFrom.get(currKey);
             }
+
             return path;
         }
 
-        closedSet.add(current.key);
-
-        // Check neighbors
+        // Explore 4-directional neighbors
         const neighbors = [
             { x: current.x + 1, y: current.y },
             { x: current.x - 1, y: current.y },
@@ -2361,71 +2757,162 @@ function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
         for (const neighbor of neighbors) {
             const neighborKey = `${neighbor.x},${neighbor.y}`;
 
-            if (closedSet.has(neighborKey)) continue;
+            if (visited.has(neighborKey)) continue;
             if (!isPassable(neighbor.x, neighbor.y, trenchSet)) continue;
 
-            // Calculate base movement cost
-            let movementCost = 1;
-
-            // Check if we need to cross a bridge (path crosses from one side to another)
-            const needsBridge = needsBridgeCrossing(startX, startY, endX, endY, current.x, current.y, neighbor.x, neighbor.y);
-
-            if (needsBridge) {
-                // Strongly prefer bridge tiles when crossing
-                const isNeighborOnBridge = bridges ? isOnBridge(neighbor.x, neighbor.y, bridges) : isOnCentralBridge(neighbor.x, neighbor.y);
-                const isCurrentOnBridge = bridges ? isOnBridge(current.x, current.y, bridges) : isOnCentralBridge(current.x, current.y);
-
-                if (isNeighborOnBridge) {
-                    // Prefer bridge tiles - reduce cost significantly
-                    movementCost = 0.5;
-                } else if (!isCurrentOnBridge) {
-                    // Penalize non-bridge tiles when we should be on a bridge
-                    movementCost = 2.0;
-                }
-            }
-
-            const tentativeGScore = (gScore.get(current.key) || Infinity) + movementCost;
-
-            if (!gScore.has(neighborKey) || tentativeGScore < gScore.get(neighborKey)) {
-                cameFrom.set(neighborKey, current.key);
-                gScore.set(neighborKey, tentativeGScore);
-                fScore.set(neighborKey, tentativeGScore + heuristic(neighbor.x, neighbor.y, endX, endY));
-
-                if (!openSet.find(n => n.key === neighborKey)) {
-                    openSet.push({ x: neighbor.x, y: neighbor.y, key: neighborKey });
-                }
-            }
+            visited.add(neighborKey);
+            cameFrom.set(neighborKey, currentKey);
+            queue.push(neighbor);
         }
     }
 
-    return []; // No path found
+    // No path found – caller will handle this and avoid moving the troop
+    return [];
 }
 
-// Check if path needs to cross a bridge (crosses from one quadrant to another)
-function needsBridgeCrossing(startX, startY, endX, endY, currentX, currentY, nextX, nextY) {
-    // Determine quadrants
-    const centerX = GRID_SIZE / 2; // 20
-    const centerY = GRID_SIZE / 2; // 20
+// Smart game acceleration system to keep games under 200 turns (~30 minutes)
+// Uses escalating mechanics based on turn thresholds to force decisive gameplay
+function applyGameAcceleration(game) {
+    const turn = game.turnNumber || 0;
 
-    // Check if start and end are on opposite sides of the center
-    const startSideX = startX < centerX ? 'left' : (startX > centerX ? 'right' : 'center');
-    const startSideY = startY < centerY ? 'top' : (startY > centerY ? 'bottom' : 'center');
-    const endSideX = endX < centerX ? 'left' : (endX > centerX ? 'right' : 'center');
-    const endSideY = endY < centerY ? 'top' : (endY > centerY ? 'bottom' : 'center');
+    // PHASE 1 (Turns 1-80): Normal gameplay, no intervention
+    if (turn <= 80) {
+        return;
+    }
 
-    // If crossing center in X or Y direction, we need a bridge
-    const crossingX = (startSideX === 'left' && endSideX === 'right') || (startSideX === 'right' && endSideX === 'left');
-    const crossingY = (startSideY === 'top' && endSideY === 'bottom') || (startSideY === 'bottom' && endSideY === 'top');
+    // PHASE 2 (Turns 81-120): Mild pressure
+    // - Slightly boost all troop damage (+10%)
+    if (turn > 80 && turn <= 120) {
+        if (turn === 81) {
+            console.log(`⚡ [Turn ${turn}] PHASE 2: Mild pressure activated - Troop damage +10%`);
+        }
+        game.troops.forEach(troop => {
+            if (!troop.damageBoostApplied) {
+                troop.damage = Math.floor(troop.damage * 1.1);
+                troop.damageBoostApplied = true;
+            }
+        });
+        return;
+    }
 
-    // Check if current position is near center and next position crosses center
-    const currentNearCenter = Math.abs(currentX - centerX) <= 3 && Math.abs(currentY - centerY) <= 3;
-    const nextNearCenter = Math.abs(nextX - centerX) <= 3 && Math.abs(nextY - centerY) <= 3;
+    // PHASE 3 (Turns 121-160): Moderate pressure
+    // - Boost troop damage (+25% total)
+    // - Randomly damage a player's base every 5 turns
+    if (turn > 120 && turn <= 160) {
+        if (turn === 121) {
+            console.log(`⚡ [Turn ${turn}] PHASE 3: Moderate pressure - Troop damage +25%, Random base damage`);
+        }
 
-    return (crossingX || crossingY) && (currentNearCenter || nextNearCenter);
+        // Boost existing troops
+        game.troops.forEach(troop => {
+            if (!troop.damageBoostApplied || troop.damageBoostApplied < 1.25) {
+                const baseDamage = troop.baseDamage || troop.damage;
+                troop.baseDamage = baseDamage;
+                troop.damage = Math.floor(baseDamage * 1.25);
+                troop.damageBoostApplied = 1.25;
+            }
+        });
+
+        // Random base damage every 5 turns
+        if (turn % 5 === 0) {
+            const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
+            if (activePlayers.length > 1) {
+                const randomPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];
+                const damage = 50 + Math.floor(Math.random() * 50); // 50-100 damage
+                randomPlayer.baseHp = Math.max(0, randomPlayer.baseHp - damage);
+                console.log(`💥 [Turn ${turn}] Random event: ${randomPlayer.username}'s base takes ${damage} damage!`);
+            }
+        }
+        return;
+    }
+
+    // PHASE 4 (Turns 161-190): Heavy pressure
+    // - Boost troop damage (+50% total)
+    // - Reduce ALL base HP by 2% per turn (erosion)
+    // - Random catastrophic damage every 3 turns
+    if (turn > 160 && turn <= 190) {
+        if (turn === 161) {
+            console.log(`⚡ [Turn ${turn}] PHASE 4: Heavy pressure - Troop damage +50%, Base erosion, Catastrophic events`);
+        }
+
+        // Boost existing troops
+        game.troops.forEach(troop => {
+            if (!troop.damageBoostApplied || troop.damageBoostApplied < 1.5) {
+                const baseDamage = troop.baseDamage || troop.damage;
+                troop.baseDamage = baseDamage;
+                troop.damage = Math.floor(baseDamage * 1.5);
+                troop.damageBoostApplied = 1.5;
+            }
+        });
+
+        // Base erosion: all active bases lose 2% HP per turn
+        const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
+        activePlayers.forEach(player => {
+            const erosionDamage = Math.ceil(player.baseHp * 0.02);
+            player.baseHp = Math.max(0, player.baseHp - erosionDamage);
+        });
+
+        // Catastrophic damage every 3 turns
+        if (turn % 3 === 0) {
+            if (activePlayers.length > 1) {
+                // Pick the player with highest HP (rubber-banding)
+                activePlayers.sort((a, b) => b.baseHp - a.baseHp);
+                const target = activePlayers[0];
+                const damage = 150 + Math.floor(Math.random() * 100); // 150-250 damage
+                target.baseHp = Math.max(0, target.baseHp - damage);
+                console.log(`🌊 [Turn ${turn}] Catastrophe: ${target.username}'s base takes ${damage} damage!`);
+            }
+        }
+        return;
+    }
+
+    // PHASE 5 (Turns 191-200): ENDGAME FORCED
+    // - Boost troop damage (+100% total)
+    // - Reduce ALL base HP by 5% per turn
+    // - Attack weakest player's base every turn
+    // - At turn 200: Declare winner based on highest HP
+    if (turn > 190) {
+        if (turn === 191) {
+            console.log(`💀 [Turn ${turn}] PHASE 5: ENDGAME - Troop damage +100%, Rapid base erosion, Forced conclusion`);
+        }
+
+        // Massive boost to troops
+        game.troops.forEach(troop => {
+            if (!troop.damageBoostApplied || troop.damageBoostApplied < 2.0) {
+                const baseDamage = troop.baseDamage || troop.damage;
+                troop.baseDamage = baseDamage;
+                troop.damage = Math.floor(baseDamage * 2.0);
+                troop.damageBoostApplied = 2.0;
+            }
+        });
+
+        // Severe base erosion: all bases lose 5% HP per turn
+        const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
+        activePlayers.forEach(player => {
+            const erosionDamage = Math.ceil(player.baseHp * 0.05);
+            player.baseHp = Math.max(0, player.baseHp - erosionDamage);
+        });
+
+        // Attack weakest player every turn to force elimination
+        if (activePlayers.length > 1) {
+            activePlayers.sort((a, b) => a.baseHp - b.baseHp);
+            const weakest = activePlayers[0];
+            const damage = 100 + Math.floor(Math.random() * 100); // 100-200 damage
+            weakest.baseHp = Math.max(0, weakest.baseHp - damage);
+            console.log(`⚔️ [Turn ${turn}] Targeting weakest: ${weakest.username}'s base takes ${damage} damage!`);
+        }
+
+    }
 }
 
-function heuristic(x1, y1, x2, y2) {
-    return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+// Get current damage multiplier based on turn number
+function getCurrentDamageMultiplier(game) {
+    const turn = game.turnNumber || 0;
+    if (turn <= 80) return 1.0;
+    if (turn <= 120) return 1.1;
+    if (turn <= 160) return 1.25;
+    if (turn <= 190) return 1.5;
+    return 2.0; // Turn 191+
 }
 
 function nextTurn(gameId) {
@@ -2437,6 +2924,9 @@ function nextTurn(gameId) {
         console.error(`Invalid game state in nextTurn for ${gameId}`);
         return;
     }
+
+    // Increment turn counter
+    game.turnNumber = (game.turnNumber || 0) + 1;
 
     // Check for winner before proceeding
     const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
@@ -2451,6 +2941,9 @@ function nextTurn(gameId) {
         setTimeout(() => resetGame(gameId), 10000);
         return;
     }
+
+    // Apply game acceleration mechanics to keep games under 200 turns
+    applyGameAcceleration(game);
 
     // Apply combat damage at end of turn
     applyCombatDamage(game, gameId);
@@ -2470,12 +2963,13 @@ function nextTurn(gameId) {
     }
 
     // Move troops based on their speed
-    // In automatic mode: all troops move
-    // In manual mode: only AI-owned troops move automatically
+    // - Automatic mode: all troops move.
+    // - Manual mode: the current player may manually move troops, but any troops
+    //   not moved are auto-moved at turn end so that every movable troop advances.
     if (game.movementMode === 'automatic') {
         moveTroopsOnTurnEnd(game, false); // Move all troops
     } else {
-        moveTroopsOnTurnEnd(game, true); // Move only AI troops
+        moveTroopsOnTurnEnd(game, false, { onlyUnmoved: true }); // Auto-move any unmoved troops
     }
 
     // Clear moved troops set for new turn
@@ -2533,19 +3027,19 @@ function nextTurn(gameId) {
         if (currentPlayer.isAI) {
             console.log(`🤖 AI ${currentPlayer.username}'s turn - Elixir: ${currentPlayer.elixir}, Hand: ${currentPlayer.hand?.length || 0} cards`);
             console.log(`🤖 AI ${currentPlayer.username} is making moves...`);
-            
+
             // Make AI moves asynchronously
             makeAIMoves(gameId, currentPlayer.id).then(movesMade => {
-                // AI takes only 100ms per turn for very fast gameplay
-                const animationTime = 100;
-                console.log(`🤖 AI ${currentPlayer.username} made ${movesMade} moves, waiting ${animationTime}ms`);
+            // AI takes only 100ms per turn for very fast gameplay
+            const animationTime = 100;
+            console.log(`🤖 AI ${currentPlayer.username} made ${movesMade} moves, waiting ${animationTime}ms`);
 
-                setTimeout(() => {
-                    if (games[gameId] && games[gameId].currentTurn === currentPlayer.id) {
-                        console.log(`🤖 AI ${currentPlayer.username} ending turn`);
-                        nextTurn(gameId);
-                    }
-                }, animationTime);
+            setTimeout(() => {
+                if (games[gameId] && games[gameId].currentTurn === currentPlayer.id) {
+                    console.log(`🤖 AI ${currentPlayer.username} ending turn`);
+                    nextTurn(gameId);
+                }
+            }, animationTime);
             }).catch(err => {
                 console.error(`Error in AI moves for ${currentPlayer.username}:`, err);
                 // Still advance turn on error
@@ -2559,6 +3053,17 @@ function nextTurn(gameId) {
 
 function applyCombatDamage(game, gameId) {
     const combatEvents = []; // { type: 'attack'|'death', attackerId, targetId, damage, x, y }
+
+    // REMOVE troops belonging to eliminated players before combat
+    const troopsBeforeCombatCleanup = game.troops.length;
+    game.troops = game.troops.filter(troop => {
+        const owner = game.players[troop.ownerId];
+        return owner && !owner.eliminated;
+    });
+    const troopsRemovedBeforeCombat = troopsBeforeCombatCleanup - game.troops.length;
+    if (troopsRemovedBeforeCombat > 0) {
+        console.log(`🧹 Combat cleanup: Removed ${troopsRemovedBeforeCombat} troops from eliminated players.`);
+    }
 
     // Combat happens at end of turn
     game.troops.forEach(troop => {
@@ -2575,6 +3080,13 @@ function applyCombatDamage(game, gameId) {
                     if (targetBase.baseHp <= 0) {
                         targetBase.baseHp = 0;
                         targetBase.eliminated = true;
+
+                        // REMOVE ALL TROOPS belonging to eliminated player
+                        const troopsBeforeRemoval = game.troops.length;
+                        game.troops = game.troops.filter(t => t.ownerId !== troop.targetBaseId);
+                        const troopsRemoved = troopsBeforeRemoval - game.troops.length;
+                        console.log(`🔥 Base ${troop.targetBaseId} eliminated! Removed ${troopsRemoved} troops.`);
+
                         io.to(gameId).emit('gameOver', { winner: null, eliminated: troop.targetBaseId });
 
                         // Check for winner
@@ -2708,40 +3220,60 @@ function getBridgeForPath(fromBase, toBase, bridges) {
     }
 }
 
+// Check if target base is directly across (opposite side of map)
+function isAcrossFromBase(fromBase, toBase) {
+    const fromX = fromBase.gridX;
+    const fromY = fromBase.gridY;
+    const toX = toBase.gridX;
+    const toY = toBase.gridY;
+
+    // Top to Bottom or Bottom to Top (vertical opposite)
+    if ((fromY < 10 && toY > 30) || (fromY > 30 && toY < 10)) {
+        return true;
+    }
+
+    // Left to Right or Right to Left (horizontal opposite)
+    if ((fromX < 10 && toX > 30) || (fromX > 30 && toX < 10)) {
+        return true;
+    }
+
+    return false;
+}
+
 // Get TWO bridge options for multi-path attack on neighboring bases
 function getTwoBridgesForNeighbor(fromBase, toBase, bridges) {
     const fromX = fromBase.gridX;
     const fromY = fromBase.gridY;
     const toX = toBase.gridX;
     const toY = toBase.gridY;
-    
+
     // Identify which two bridges connect the bases
     // Top base (20, 4) can connect to:
     //   - Right (36, 20) via NE or Center
     //   - Bottom (20, 36) via NW+SW or NE+SE
     //   - Left (4, 20) via NW or Center
-    
+
     // Right base (36, 20) can connect to:
     //   - Top (20, 4) via NE or Center
     //   - Bottom (20, 36) via SE or Center
     //   - Left (4, 20) via NW+NE or SW+SE
-    
+
     // Bottom base (20, 36) can connect to:
     //   - Top (20, 4) via SW+NW or SE+NE
     //   - Right (36, 20) via SE or Center
     //   - Left (4, 20) via SW or Center
-    
+
     // Left base (4, 20) can connect to:
     //   - Top (20, 4) via NW or Center
     //   - Right (36, 20) via NE+NW or SE+SW
     //   - Bottom (20, 36) via SW or Center
-    
+
     const center = bridges.find(b => b.quadrant === 'center');
     const nw = bridges.find(b => b.quadrant === 'nw');
     const ne = bridges.find(b => b.quadrant === 'ne');
     const sw = bridges.find(b => b.quadrant === 'sw');
     const se = bridges.find(b => b.quadrant === 'se');
-    
+
     // Top to Right or Right to Top
     if ((fromY < 10 && toX > 30) || (fromX > 30 && toY < 10)) {
         return [ne, center];
@@ -2766,7 +3298,7 @@ function getTwoBridgesForNeighbor(fromBase, toBase, bridges) {
     if ((fromX < 10 && toX > 30) || (fromX > 30 && toX < 10)) {
         return [nw, sw]; // Use both left bridges or both right bridges
     }
-    
+
     // Fallback: use center and closest corner bridge
     return [center, nw];
 }
@@ -2910,8 +3442,20 @@ function isInSameQuadrant(troop1, troop2, basePlayer) {
     return (aboveDiag1 === enemyAboveDiag1 && aboveDiag2 === enemyAboveDiag2);
 }
 
-function moveTroopsOnTurnEnd(game, aiOnly = false) {
+function moveTroopsOnTurnEnd(game, aiOnly = false, options = {}) {
     const trenchSet = new Set(game.terrain.trench.map(t => `${t.x},${t.y}`));
+    const onlyUnmoved = !!options.onlyUnmoved;
+
+    // REMOVE troops belonging to eliminated players before moving
+    const troopsBeforeCleanup = game.troops.length;
+    game.troops = game.troops.filter(troop => {
+        const owner = game.players[troop.ownerId];
+        return owner && !owner.eliminated;
+    });
+    const troopsRemoved = troopsBeforeCleanup - game.troops.length;
+    if (troopsRemoved > 0) {
+        console.log(`🧹 Cleaned up ${troopsRemoved} troops from eliminated players.`);
+    }
 
     game.troops.forEach(troop => {
         // In manual mode with aiOnly=true, only move AI-owned troops
@@ -2920,6 +3464,13 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             if (!owner || !owner.isAI) {
                 return; // Skip ALL human-owned troops in manual mode
             }
+        }
+
+        // In manual mode, if the player already moved this troop manually,
+        // do not auto-move it again. (We still ensure every troop moves by
+        // auto-moving any troops that were NOT manually moved.)
+        if (onlyUnmoved && game.movedTroops && game.movedTroops.has(troop.id)) {
+            return;
         }
 
         // In turn-based mode, only move troops belonging to the current player
@@ -3033,30 +3584,27 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
 
             const targetBase = game.players[troop.targetBaseId];
             if (!targetBase || targetBase.eliminated) {
-                // Target is gone, pick new target
+                // Target is gone, pick new target (prefer closest enemy to minimize "retreating" appearance)
                 const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
                 if (enemies.length > 0) {
-                    // Filter enemies to only neighboring players or those in allowed 180-degree arc
-                    const ownerBase = game.players[troop.ownerId];
-                    const allowedEnemies = enemies.filter(enemy =>
-                        isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, enemy.gridX, enemy.gridY) ||
-                        isAllowedDirection(ownerBase.gridX, ownerBase.gridY, enemy.gridX, enemy.gridY)
-                    );
+                    // Find closest enemy to avoid backtracking
+                    let closestEnemy = enemies[0];
+                    let minDist = Math.abs(troop.gridX - closestEnemy.gridX) + Math.abs(troop.gridY - closestEnemy.gridY);
 
-                    const validTargets = allowedEnemies.length > 0 ? allowedEnemies : enemies; // Fallback to all if none in arc
+                    for (const enemy of enemies) {
+                        const dist = Math.abs(troop.gridX - enemy.gridX) + Math.abs(troop.gridY - enemy.gridY);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closestEnemy = enemy;
+                        }
+                    }
 
-                    // If only 2 players, always target the enemy base
-                    if (isTwoPlayerMode && validTargets.length === 1) {
-                        troop.targetBaseId = validTargets[0].id;
-                    } else if (validTargets.length > 0) {
-                        const randomEnemy = validTargets[Math.floor(Math.random() * validTargets.length)];
-                        troop.targetBaseId = randomEnemy.id;
-                    }
-                    const newTarget = game.players[troop.targetBaseId];
-                    if (newTarget) {
-                        targetGridX = newTarget.gridX;
-                        targetGridY = newTarget.gridY;
-                    }
+                    troop.targetBaseId = closestEnemy.id;
+                    targetGridX = closestEnemy.gridX;
+                    targetGridY = closestEnemy.gridY;
+
+                    // Clear path so it recalculates to new target
+                    troop.path = [];
                 }
             } else {
                 targetGridX = targetBase.gridX;
@@ -3066,6 +3614,26 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
 
         if (targetGridX === undefined || targetGridY === undefined) return;
 
+        // If the target is the current tile (common for patrol units), force a 1-tile move
+        // to ensure moving units always advance each turn.
+        if (troop.gridX === targetGridX && troop.gridY === targetGridY) {
+            const candidates = [
+                { x: troop.gridX + 1, y: troop.gridY },
+                { x: troop.gridX - 1, y: troop.gridY },
+                { x: troop.gridX, y: troop.gridY + 1 },
+                { x: troop.gridX, y: troop.gridY - 1 }
+            ].filter(p =>
+                p.x >= 0 && p.y >= 0 && p.x < GRID_SIZE && p.y < GRID_SIZE &&
+                !trenchSet.has(`${p.x},${p.y}`)
+            );
+            if (candidates.length > 0) {
+                const pick = candidates[Math.floor(Math.random() * candidates.length)];
+                targetGridX = pick.x;
+                targetGridY = pick.y;
+                troop.path = []; // force recalc
+            }
+        }
+
         // Calculate path using A* if we don't have one or if we're close to end of path
         if (!troop.path || troop.path.length === 0) {
             // Pass bridge information to pathfinding for strict bridge following
@@ -3073,50 +3641,60 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
             const ownerBase = game.players[troop.ownerId];
             const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
 
+            // ALWAYS start with a valid path to target
             let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
 
-            // SPLIT ATTACK: For neighboring bases, alternate troops between two bridge paths
-            if (targetIsNeighboring) {
-                const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
-                
-                // Assign this troop a path index if it doesn't have one
-                if (troop.attackPathIndex === undefined) {
-                    // Count existing troops attacking this target to alternate paths
-                    const troopsOnTarget = game.troops.filter(t => 
-                        t.ownerId === troop.ownerId && 
-                        t.targetBaseId === troop.targetBaseId && 
-                        t.id !== troop.id
-                    );
-                    troop.attackPathIndex = troopsOnTarget.length % 2; // Alternate 0, 1, 0, 1...
-                }
-                
-                // Route through the assigned bridge
-                const bridgeToUse = twoBridges[troop.attackPathIndex];
-                if (bridgeToUse) {
-                    const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
-                    const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
-                    
-                    if (path1.length > 0 && path2.length > 0) {
+            // Only apply special routing if we have a base path to work with
+            if (path && path.length > 0) {
+                // Check if attacking base directly across (opposite side)
+                const targetIsAcross = ownerBase && isAcrossFromBase(ownerBase, { gridX: targetGridX, gridY: targetGridY });
+
+                if (targetIsAcross) {
+                    // ACROSS ATTACK: Force troops through center bridge only
+                const centerX = 20;
+                const centerY = 20;
+                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
+                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
+
+                    // Only use center route if both segments are valid
+                if (path1.length > 0 && path2.length > 0) {
                         path = [...path1, ...path2];
                     }
-                }
-            } else {
-                // Non-neighboring attack: sometimes use center bridge for variety
-                if (game.movementMode === 'automatic' && Math.random() < 0.3 && path.length > 0) {
-                    // Try routing through center bridge
-                    const centerX = 20;
-                    const centerY = 20;
-                    const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
-                    const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
+                    // Otherwise keep direct path
+                } else if (targetIsNeighboring) {
+                    // SPLIT ATTACK: For neighboring bases, alternate troops between two bridge paths
+                    const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
 
-                    if (path1.length > 0 && path2.length > 0) {
-                        // Use center route if it's not too much longer (within 50% of direct path)
-                        const centerPathLength = path1.length + path2.length;
-                        if (centerPathLength <= path.length * 1.5) {
+                    // Assign this troop a path index if it doesn't have one
+                    if (troop.attackPathIndex === undefined) {
+                        // Count existing troops attacking this target to alternate paths
+                        const troopsOnTarget = game.troops.filter(t =>
+                            t.ownerId === troop.ownerId &&
+                            t.targetBaseId === troop.targetBaseId &&
+                            t.id !== troop.id
+                        );
+                        troop.attackPathIndex = troopsOnTarget.length % 2; // Alternate 0, 1, 0, 1...
+                    }
+
+                    // Route through the assigned bridge
+                    const bridgeToUse = twoBridges[troop.attackPathIndex];
+                    if (bridgeToUse) {
+                        const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
+                        const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
+
+                        // Only use bridge route if both segments are valid
+                        if (path1.length > 0 && path2.length > 0) {
                             path = [...path1, ...path2];
                         }
+                        // Otherwise keep direct path
                     }
                 }
+            }
+
+            // CRITICAL: Always ensure we have a valid path before moving
+            if (!path || path.length === 0) {
+                console.log(`⚠️ Troop ${troop.id} (${troop.name}) has no path to target (${targetGridX}, ${targetGridY})! Skipping movement.`);
+                return; // Skip this troop if no valid path exists
             }
 
             troop.path = path;
@@ -3125,6 +3703,9 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
         // Move along the path
         for (let i = 0; i < movesPerTurn && troop.path && troop.path.length > 0; i++) {
             const nextStep = troop.path[0];
+
+            // REMOVED RETREAT CHECK - Offensive troops should always follow their calculated path
+            // The pathfinding algorithm will handle routing to the target efficiently
 
             // Store old position for defensive troop damage check
             const oldGridX = troop.gridX;
@@ -3157,38 +3738,50 @@ function moveTroopsOnTurnEnd(game, aiOnly = false) {
                     const ownerBase = game.players[troop.ownerId];
                     const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
 
+                    // ALWAYS start with a valid direct path
                     let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
 
-                    // SPLIT ATTACK: For neighboring bases, use assigned bridge path
-                    if (targetIsNeighboring && troop.attackPathIndex !== undefined) {
-                        const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
-                        const bridgeToUse = twoBridges[troop.attackPathIndex];
-                        
-                        if (bridgeToUse) {
-                            const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
-                            const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
-                            
-                            if (path1.length > 0 && path2.length > 0) {
-                                path = [...path1, ...path2];
-                            }
-                        }
-                    } else if (!targetIsNeighboring && game.movementMode === 'automatic' && Math.random() < 0.3 && path.length > 0) {
-                        // Non-neighboring: sometimes use center bridge
+                    // Only apply special routing if we have a base path
+                    if (path && path.length > 0) {
+                        // Check if attacking base directly across (opposite side)
+                        const targetIsAcross = ownerBase && isAcrossFromBase(ownerBase, { gridX: targetGridX, gridY: targetGridY });
+
+                        if (targetIsAcross) {
+                            // ACROSS ATTACK: Force troops through center bridge only
                         const centerX = 20;
                         const centerY = 20;
                         const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
                         const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
 
+                            // Only use center route if both segments are valid
                         if (path1.length > 0 && path2.length > 0) {
-                            // Use center route if it's not too much longer (within 50% of direct path)
-                            const centerPathLength = path1.length + path2.length;
-                            if (centerPathLength <= path.length * 1.5) {
                                 path = [...path1, ...path2];
+                            }
+                            // Otherwise keep direct path
+                        } else if (targetIsNeighboring && troop.attackPathIndex !== undefined) {
+                            // SPLIT ATTACK: For neighboring bases, use assigned bridge path
+                            const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
+                            const bridgeToUse = twoBridges[troop.attackPathIndex];
+
+                            if (bridgeToUse) {
+                                const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
+                                const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
+
+                                // Only use bridge route if both segments are valid
+                                if (path1.length > 0 && path2.length > 0) {
+                                    path = [...path1, ...path2];
+                                }
+                                // Otherwise keep direct path
                             }
                         }
                     }
 
+                    // Only update path if we have a valid one
+                    if (path && path.length > 0) {
                     troop.path = path;
+                    } else {
+                        console.log(`⚠️ Troop ${troop.id} (${troop.name}) path recalc failed! Keeping old path.`);
+                    }
                 }
             }
         }
@@ -3257,14 +3850,9 @@ function startGameLoop(gameId) {
             // Combat happens continuously
             applyCombatDamage(game, gameId);
 
-            // Move troops continuously
-            // In automatic mode: all troops move
-            // In manual mode: only AI troops move automatically
-            if (game.movementMode === 'automatic') {
-                moveTroopsOnTurnEnd(game, false); // All troops
-            } else {
-                moveTroopsOnTurnEnd(game, true); // Only AI troops
-            }
+            // Move troops continuously in live mode.
+            // Stacking is allowed, and movable troops should keep advancing.
+            moveTroopsOnTurnEnd(game, false); // All troops
         }
 
         // Update troop grid positions
@@ -3328,19 +3916,19 @@ async function runTrainingGame() {
         const game = createGame(trainingGameId);
         game.isTrainingGame = true; // Mark as training game
         game.trainingData = []; // Store decisions made during this game
-        
+
         // Set game to playing immediately (no lobby)
         game.status = 'playing';
         game.gameStartTime = Date.now();
         game.gameMode = 'turns';
         game.movementMode = 'automatic';
-        
+
         // Add two AI players: one with ML mode, one baseline
         const positions = [
             { gridX: 20, gridY: 4, color: '#00BFFF' },   // Top
             { gridX: 20, gridY: 36, color: '#32CD32' }  // Bottom
         ];
-        
+
         // ML AI player
         const mlAiId = 'ml_ai';
         game.players[mlAiId] = {
@@ -3357,7 +3945,7 @@ async function runTrainingGame() {
             eliminated: false
         };
         game.players[mlAiId].nextCard = getBalancedCard(game.players[mlAiId].hand, 0);
-        
+
         // Baseline AI player
         const baselineAiId = 'baseline_ai';
         game.players[baselineAiId] = {
@@ -3374,34 +3962,34 @@ async function runTrainingGame() {
             eliminated: false
         };
         game.players[baselineAiId].nextCard = getBalancedCard(game.players[baselineAiId].hand, 0);
-        
+
         // Set turn order
         game.turnOrder = [mlAiId, baselineAiId];
         game.currentTurn = game.turnOrder[0];
         game.turnStartTime = Date.now();
         game.turnTimeRemaining = TURN_DURATION;
         game.turnNumber = 1;
-        
+
         // Store the game temporarily
         games[trainingGameId] = game;
-        
+
         // Fast-forward game loop (no graphics, accelerated turns)
-        const maxTurns = 200; // Increased limit to allow games to finish
+        const maxTurns = 2000; // Increased limit to allow games to finish
         let turnCount = 0;
-        
+
         const gameInterval = setInterval(async () => {
             const g = games[trainingGameId];
             if (!g || g.status !== 'playing') {
                 clearInterval(gameInterval);
-                
+
                 // Determine winner
                 const activePlayers = Object.values(game.players).filter(p => !p.eliminated);
                 const winner = activePlayers.length === 1 ? activePlayers[0] : null;
-                
+
                 // Label training data based on outcome
                 const mlWon = winner && winner.id === mlAiId;
                 const baselineWon = winner && winner.id === baselineAiId;
-                
+
                 if (game.trainingData && game.trainingData.length > 0) {
                     game.trainingData.forEach(sample => {
                         // Label: 1 if the player who made this decision won, 0 if lost, 0.5 if draw
@@ -3411,7 +3999,7 @@ async function runTrainingGame() {
                         } else if (sample.playerId === baselineAiId) {
                             label = baselineWon ? 1 : (mlWon ? 0 : 0.5);
                         }
-                        
+
                         // Only add non-draw samples for ML player
                         if (sample.playerId === mlAiId && label !== 0.5) {
                             trainingState.trainingDataBuffer.push({
@@ -3421,10 +4009,10 @@ async function runTrainingGame() {
                         }
                     });
                 }
-                
+
                 // Clean up
                 delete games[trainingGameId];
-                
+
                 resolve({
                     mlWon: mlWon,
                     baselineWon: baselineWon,
@@ -3433,7 +4021,7 @@ async function runTrainingGame() {
                 });
                 return;
             }
-            
+
             // Fast turn simulation
             const currentPlayer = g.players[g.currentTurn];
             if (currentPlayer && currentPlayer.isAI) {
@@ -3443,25 +4031,25 @@ async function runTrainingGame() {
                     console.error('Error in training game AI moves:', err);
                 }
             }
-            
+
             // Apply combat
             applyCombatDamage(g, trainingGameId);
-            
+
             // Move troops
             moveTroopsOnTurnEnd(g, false);
-            
+
             // Check for winner
             const activePlayers = Object.values(g.players).filter(p => !p.eliminated);
             if (activePlayers.length <= 1) {
                 g.status = 'ended';
                 clearInterval(gameInterval);
-                
+
                 const winner = activePlayers.length === 1 ? activePlayers[0] : null;
-                
+
                 // Label training data based on outcome
                 const mlWon = winner && winner.id === mlAiId;
                 const baselineWon = winner && winner.id === baselineAiId;
-                
+
                 if (g.trainingData && g.trainingData.length > 0) {
                     g.trainingData.forEach(sample => {
                         let label = 0.5;
@@ -3470,7 +4058,7 @@ async function runTrainingGame() {
                         } else if (sample.playerId === baselineAiId) {
                             label = baselineWon ? 1 : (mlWon ? 0 : 0.5);
                         }
-                        
+
                         // Only add non-draw samples for ML player
                         if (sample.playerId === mlAiId && label !== 0.5) {
                             trainingState.trainingDataBuffer.push({
@@ -3480,9 +4068,9 @@ async function runTrainingGame() {
                         }
                     });
                 }
-                
+
                 delete games[trainingGameId];
-                
+
                 resolve({
                     mlWon: mlWon,
                     baselineWon: baselineWon,
@@ -3491,7 +4079,7 @@ async function runTrainingGame() {
                 });
                 return;
             }
-            
+
             // Advance turn
             turnCount++;
             if (turnCount >= maxTurns) {
@@ -3499,7 +4087,7 @@ async function runTrainingGame() {
                 g.status = 'ended';
                 clearInterval(gameInterval);
                 delete games[trainingGameId];
-                
+
                 resolve({
                     mlWon: false,
                     baselineWon: false,
@@ -3508,14 +4096,14 @@ async function runTrainingGame() {
                 });
                 return;
             }
-            
+
             // Next turn
             const currentIndex = g.turnOrder.indexOf(g.currentTurn);
             const nextIndex = (currentIndex + 1) % g.turnOrder.length;
             g.currentTurn = g.turnOrder[nextIndex];
             g.turnStartTime = Date.now();
             g.turnNumber++;
-            
+
             // Give elixir
             const nextPlayer = g.players[g.currentTurn];
             if (nextPlayer) {
@@ -3528,40 +4116,40 @@ async function runTrainingGame() {
 // Run training loop
 async function runTrainingLoop() {
     console.log(`🧠 ML Training started: ${trainingState.totalGames} games`);
-    
+
     const blockSize = 10; // Report progress every 10 games
-    
+
     for (let i = 0; i < trainingState.totalGames; i++) {
         if (!trainingState.isRunning) {
             console.log('🛑 Training stopped by user');
             break;
         }
-        
+
         try {
             const result = await runTrainingGame();
-            
+
             if (result.mlWon) trainingState.mlWins++;
             if (result.baselineWon) trainingState.baselineWins++;
             trainingState.gamesCompleted++;
-            
+
             // Log each game result
             console.log(`Game ${trainingState.gamesCompleted}: ${result.mlWon ? 'ML WIN' : result.baselineWon ? 'BASELINE WIN' : 'DRAW'} (${result.turns} turns)`);
-            
+
             // Report progress every block
             if (trainingState.gamesCompleted % blockSize === 0) {
                 const mlWinRate = trainingState.mlWins / trainingState.gamesCompleted;
                 const baselineWinRate = trainingState.baselineWins / trainingState.gamesCompleted;
-                
+
                 // TRAIN THE MODEL with collected data
                 let trainingResult = null;
                 if (trainingState.trainingDataBuffer.length >= 50) {
                     console.log(`🎓 Training neural network with ${trainingState.trainingDataBuffer.length} samples...`);
                     trainingResult = await trainMLModelWithData(trainingState.trainingDataBuffer);
-                    
+
                     // Clear buffer after training
                     trainingState.trainingDataBuffer = [];
                 }
-                
+
                 trainingState.history.push({
                     step: trainingState.gamesCompleted,
                     timestamp: Date.now(),
@@ -3571,24 +4159,24 @@ async function runTrainingLoop() {
                     trainLoss: trainingResult ? trainingResult.loss : null,
                     trainAccuracy: trainingResult ? trainingResult.accuracy : null
                 });
-                
+
                 console.log(`📊 Training progress: ${trainingState.gamesCompleted}/${trainingState.totalGames} | ML: ${(mlWinRate * 100).toFixed(1)}% | Baseline: ${(baselineWinRate * 100).toFixed(1)}%`);
                 if (trainingResult) {
                     console.log(`   Neural net trained - Loss: ${trainingResult.loss.toFixed(4)}, Acc: ${(trainingResult.accuracy * 100).toFixed(1)}%`);
                 }
-                
+
                 // Update model metadata after each block
                 try {
-                    const modelData = fs.existsSync(ML_MODEL_FILE) 
+                    const modelData = fs.existsSync(ML_MODEL_FILE)
                         ? JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'))
                         : {};
-                    
+
                     modelData.lastUpdated = Date.now();
                     modelData.sampleCount = (modelData.sampleCount || 0) + blockSize;
                     modelData.mlWinRate = mlWinRate;
                     modelData.baselineWinRate = baselineWinRate;
                     modelData.trainingGames = trainingState.gamesCompleted;
-                    
+
                     // Note: Weights are already saved by saveMLModel() after training
                     fs.writeFileSync(ML_MODEL_FILE, JSON.stringify(modelData, null, 2), 'utf8');
                 } catch (err) {
@@ -3599,7 +4187,7 @@ async function runTrainingLoop() {
             console.error('Training game error:', err);
         }
     }
-    
+
     trainingState.isRunning = false;
     console.log(`✅ Training completed: ${trainingState.gamesCompleted} games | ML: ${trainingState.mlWins} wins | Baseline: ${trainingState.baselineWins} wins`);
 }
@@ -3608,14 +4196,14 @@ async function runTrainingLoop() {
 io.on('connection', (socket) => {
     socket.on('startMLTraining', ({ games: numGames }) => {
         if (!checkRateLimit(socket.id)) return;
-        
+
         if (trainingState.isRunning) {
             socket.emit('error', 'Training is already running');
             return;
         }
-        
+
         const gamesToRun = Math.min(Math.max(1, parseInt(numGames) || 100), 1000); // Limit 1-1000
-        
+
         trainingState = {
             isRunning: true,
             totalGames: gamesToRun,
@@ -3625,33 +4213,33 @@ io.on('connection', (socket) => {
             history: [],
             trainingDataBuffer: []
         };
-        
+
         socket.emit('trainingStarted', { games: gamesToRun });
         console.log(`🚀 Training started by ${socket.id}: ${gamesToRun} games`);
-        
+
         // Run training in background
         runTrainingLoop().catch(err => {
             console.error('Training loop error:', err);
             trainingState.isRunning = false;
         });
     });
-    
+
     socket.on('stopMLTraining', () => {
         if (!checkRateLimit(socket.id)) return;
-        
+
         if (!trainingState.isRunning) {
             socket.emit('error', 'No training is running');
             return;
         }
-        
+
         trainingState.isRunning = false;
         socket.emit('trainingStopped');
         console.log(`🛑 Training stopped by ${socket.id}`);
     });
-    
+
     socket.on('getMLTrainingStatus', () => {
         if (!checkRateLimit(socket.id)) return;
-        
+
         socket.emit('mlTrainingStatus', {
             isRunning: trainingState.isRunning,
             totalGames: trainingState.totalGames,
@@ -3668,10 +4256,10 @@ io.on('connection', (socket) => {
 // Update getAIStats to include training data
 io.on('connection', (socket) => {
     const originalGetAIStats = socket.on.bind(socket, 'getAIStats');
-    
+
     socket.on('getAIStats', () => {
         if (!checkRateLimit(socket.id)) return;
-        
+
         const statsWithTraining = {
             ...aiStats,
             training: {
@@ -3683,7 +4271,7 @@ io.on('connection', (socket) => {
                 history: trainingState.history
             }
         };
-        
+
         // Try to load model metadata
         try {
             if (fs.existsSync(ML_MODEL_FILE)) {
@@ -3699,7 +4287,7 @@ io.on('connection', (socket) => {
         } catch (err) {
             // Model file doesn't exist yet
         }
-        
+
         socket.emit('aiStats', statsWithTraining);
     });
 });

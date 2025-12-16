@@ -957,6 +957,302 @@ canvas {
     color: #ffeaa7;
 }
 
+/* Probability Tree (toggleable model panel) */
+.prob-tree-toggle {
+    position: fixed;
+    top: 110px;
+    left: 10px;
+    z-index: 1100;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 2px solid rgba(0, 191, 255, 0.7);
+    background: rgba(0, 30, 60, 0.9);
+    color: #fff;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    pointer-events: auto;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.prob-tree-toggle:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 191, 255, 1);
+    background: rgba(0, 40, 80, 0.92);
+}
+
+.probability-tree-panel {
+    position: fixed;
+    top: 150px;
+    left: 10px;
+    /* Leave space for the bottom-left End Turn button */
+    bottom: 120px;
+    width: 380px;
+    max-width: calc(100vw - 20px);
+    z-index: 1200;
+    pointer-events: auto;
+    background: rgba(0, 20, 40, 0.95);
+    border: 2px solid rgba(0, 191, 255, 0.55);
+    border-radius: 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.probability-tree-ellipsis {
+    margin-left: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-weight: 900;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.probability-tree-ellipsis:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.probability-tree-math {
+    margin-top: 10px;
+    padding: 10px 10px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.probability-tree-math-title {
+    color: #00bfff;
+    font-weight: 900;
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.probability-tree-math-row {
+    margin-bottom: 8px;
+}
+
+.probability-tree-math-row:last-child {
+    margin-bottom: 0;
+}
+
+.probability-tree-math-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 800;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.probability-tree-math-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.probability-tree-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 14px 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.probability-tree-title {
+    color: #00bfff;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.probability-tree-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+.probability-tree-close {
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 800;
+}
+
+.probability-tree-close:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.probability-tree-root {
+    padding: 10px 12px 14px 12px;
+    overflow: auto;
+}
+
+.probability-tree-empty {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    padding: 10px 4px;
+}
+
+.probability-tree-player {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 10px 10px 8px 10px;
+    margin-bottom: 10px;
+}
+
+.probability-tree-player.me {
+    border-color: rgba(255, 215, 0, 0.35);
+    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.08) inset;
+}
+
+.probability-tree-player-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.probability-tree-player-summary::-webkit-details-marker {
+    display: none;
+}
+
+.probability-tree-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+    flex: 0 0 auto;
+}
+
+.probability-tree-player-name {
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.probability-tree-player-prob {
+    font-weight: 900;
+    font-size: 13px;
+    flex: 0 0 auto;
+}
+
+.probability-tree-player-body {
+    padding-top: 10px;
+}
+
+.probability-tree-bar {
+    position: relative;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.probability-tree-bar-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.probability-tree-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 999px;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+}
+
+.probability-tree-factors {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.probability-tree-factor {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    padding: 6px 8px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.probability-tree-factor.muted {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.probability-tree-branch {
+    color: rgba(0, 191, 255, 0.9);
+    font-weight: 900;
+}
+
+.probability-tree-factor-name {
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.probability-tree-factor-value {
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 700;
+}
+
+.probability-tree-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 18px;
+    cursor: help;
+    pointer-events: auto;
+}
+
+.probability-tree-info:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
 .waiting-overlay {
     position: absolute;
     top: 50%;
@@ -1237,4 +1533,25 @@ canvas {
     color: #fff;
     font-weight: bold;
     text-shadow: 0 0 5px rgba(0, 191, 255, 0.5);
+}
+
+/* Game Phase Indicator Animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+.phase-indicator {
+    font-size: 0.75rem !important;
+    padding: 4px 10px !important;
+    font-weight: 800 !important;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2) !important;
 }
