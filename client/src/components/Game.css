@@ -2,12 +2,64 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     color: white;
-    background: rgba(0, 30, 60, 0.9);
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 0 50px rgba(0, 191, 255, 0.2);
+    width: min(560px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+    background: rgba(0, 20, 40, 0.86);
+    padding: clamp(18px, 4vw, 34px);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(10px);
+}
+
+.lobby-title {
+    margin: 0 0 6px 0;
+    font-size: clamp(28px, 6vw, 44px);
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    color: #eaf6ff;
+}
+
+.lobby-tabs {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.tab-button {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.tab-button:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.tab-button.active {
+    background: rgba(0, 191, 255, 0.16);
+    border-color: rgba(0, 191, 255, 0.45);
+    box-shadow: 0 10px 26px rgba(0, 191, 255, 0.12);
+}
+
+.tab-button.active.training {
+    background: rgba(0, 229, 255, 0.14);
+    border-color: rgba(0, 229, 255, 0.45);
 }
 
 .lobby input {
@@ -16,8 +68,9 @@
     border: 2px solid #006994;
     background: #001e3c;
     color: white;
-    font-size: 18px;
-    width: 250px;
+    font-size: 16px;
+    width: 100%;
+    max-width: 360px;
     text-align: center;
 }
 
@@ -37,30 +90,82 @@
 }
 
 .lobby-section label {
-    font-size: 1.3rem;
+    font-size: 0.9rem;
     font-weight: 700;
-    color: #00bfff;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.78);
+    letter-spacing: 0.6px;
 }
 
 .room-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
     gap: 12px;
     width: 100%;
 }
 
 .room-button {
-    padding: 15px 10px;
+    padding: 12px 10px;
     background: rgba(0, 100, 150, 0.3);
     border: 2px solid #006994;
     border-radius: 10px;
     color: white;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.room-title {
+    line-height: 1.1;
+}
+
+.room-meta {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.room-count {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.room-in-game-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(220, 220, 220, 0.35);
+    background: rgba(120, 120, 120, 0.25);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.room-button.in-game,
+.room-button:disabled {
+    cursor: not-allowed;
+    transform: none;
+    background: rgba(70, 70, 70, 0.28);
+    border-color: rgba(180, 180, 180, 0.22);
+    color: rgba(255, 255, 255, 0.65);
+    box-shadow: none;
+    filter: grayscale(0.5);
+}
+
+.room-button.in-game:hover,
+.room-button:disabled:hover {
+    background: rgba(70, 70, 70, 0.28);
+    border-color: rgba(180, 180, 180, 0.22);
+    transform: none;
 }
 
 .room-button:hover {
@@ -76,61 +181,18 @@
     transform: scale(1.05);
 }
 
-.mode-selection {
-    display: flex;
-    gap: 20px;
-    width: 100%;
-}
-
-.mode-button {
-    flex: 1;
-    padding: 20px;
-    background: rgba(0, 100, 150, 0.3);
-    border: 2px solid #006994;
-    border-radius: 12px;
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.mode-button:hover {
-    background: rgba(0, 150, 200, 0.4);
-    border-color: #00bfff;
-    transform: translateY(-2px);
-}
-
-.mode-button.selected {
-    background: rgba(0, 191, 255, 0.3);
-    border-color: #00bfff;
-    box-shadow: 0 0 20px rgba(0, 191, 255, 0.5);
-    transform: scale(1.02);
-}
-
-.mode-desc {
-    font-size: 0.85rem;
-    color: #aaa;
-    font-weight: 400;
-}
-
 .join-button {
-    padding: 18px 60px;
-    background: linear-gradient(135deg, #00bfff, #0080c0);
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(0, 191, 255, 0.95), rgba(0, 136, 204, 0.95));
     border: none;
     border-radius: 12px;
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.05rem;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    margin-top: 20px;
-    box-shadow: 0 5px 20px rgba(0, 191, 255, 0.4);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    letter-spacing: 0.6px;
+    box-shadow: 0 10px 26px rgba(0, 191, 255, 0.18);
 }
 
 .join-button:hover {
@@ -139,17 +201,51 @@
     background: linear-gradient(135deg, #00d4ff, #0090d0);
 }
 
-.join-button:active {
-    transform: translateY(-1px);
+.join-button:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.4);
+    opacity: 0.75;
+    transform: none;
+    box-shadow: none;
+}
+.lobby-buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.lobby-buttons.single {
+    grid-template-columns: 1fr;
+}
+
+.ai-stats-button {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.25);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
 .ai-stats-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 30px rgba(156, 39, 176, 0.6);
-    background: linear-gradient(135deg, #ab47bc, #7e57c2) !important;
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.28) !important;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
 }
 
 .ai-stats-button:active {
+    transform: translateY(-1px);
+}
+
+
+.join-button:active {
     transform: translateY(-1px);
 }
 
@@ -167,6 +263,7 @@ canvas {
     height: 100%;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
+    touch-action: none;
 }
 
 .ui-layer {
@@ -180,8 +277,7 @@ canvas {
 
 .game-info {
     position: absolute;
-    top: -90vh;
-    /* Position at top of screen */
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -245,6 +341,21 @@ canvas {
     backdrop-filter: blur(5px);
     max-height: 90vh;
     overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+.hand::-webkit-scrollbar {
+    width: 10px;
+}
+
+.hand::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+}
+
+.hand::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
 }
 
 .card {
@@ -257,12 +368,13 @@ canvas {
     justify-content: center;
     position: relative;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.18s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.18s ease, filter 0.18s ease;
     color: #333;
     border: 3px solid;
     user-select: none;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(5px);
+    will-change: transform;
 }
 
 .card:hover {
@@ -444,7 +556,8 @@ canvas {
     z-index: 10000;
     font-size: 18px;
     font-weight: bold;
-    animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 2s forwards;
+    will-change: transform, opacity;
+    animation: slideIn 0.24s ease-out, fadeOut 0.45s ease-in 2s forwards;
     pointer-events: none;
 }
 
@@ -546,7 +659,7 @@ canvas {
     font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
 .setting-btn:hover:not(:disabled) {
@@ -629,7 +742,7 @@ canvas {
     font-weight: 900;
     color: #44ff44;
     text-shadow: 0 0 10px #44ff44;
-    animation: pulse 1s infinite;
+    animation: pulse-soft 1s ease-in-out infinite;
 }
 
 .waiting-turn .turn-indicator {
@@ -664,7 +777,7 @@ canvas {
     align-items: center;
 }
 
-@keyframes pulse {
+@keyframes pulse-soft {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
 }
@@ -682,7 +795,7 @@ canvas {
     font-weight: 900;
     cursor: pointer;
     box-shadow: 0 10px 30px rgba(255, 68, 68, 0.9), 0 0 50px rgba(255, 68, 68, 0.5);
-    transition: all 0.3s;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
     text-transform: uppercase;
     letter-spacing: 4px;
     animation: pulseBig 1.5s ease-in-out infinite;
@@ -852,7 +965,7 @@ canvas {
     border: 3px solid;
     border-radius: 12px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
     font-size: 1rem;
 }
 
@@ -897,7 +1010,7 @@ canvas {
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, filter 0.18s ease;
 }
 
 .cancel-target-btn:hover {
@@ -925,301 +1038,7 @@ canvas {
     color: #ffeaa7;
 }
 
-/* Probability Tree (toggleable model panel) */
-.prob-tree-toggle {
-    position: fixed;
-    top: 110px;
-    left: 10px;
-    z-index: 1100;
-    padding: 10px 14px;
-    border-radius: 999px;
-    border: 2px solid rgba(0, 191, 255, 0.7);
-    background: rgba(0, 30, 60, 0.9);
-    color: #fff;
-    font-weight: 800;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    pointer-events: auto;
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
-    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.prob-tree-toggle:hover {
-    transform: translateY(-2px);
-    border-color: rgba(0, 191, 255, 1);
-    background: rgba(0, 40, 80, 0.92);
-}
-
-.probability-tree-panel {
-    position: fixed;
-    top: 150px;
-    left: 10px;
-    /* Leave space for the bottom-left End Turn button */
-    bottom: 120px;
-    width: 380px;
-    max-width: calc(100vw - 20px);
-    z-index: 1200;
-    pointer-events: auto;
-    background: rgba(0, 20, 40, 0.95);
-    border: 2px solid rgba(0, 191, 255, 0.55);
-    border-radius: 14px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.probability-tree-ellipsis {
-    margin-left: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
-    border-radius: 8px;
-    padding: 2px 8px;
-    font-weight: 900;
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.probability-tree-ellipsis:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.35);
-}
-
-.probability-tree-math {
-    margin-top: 10px;
-    padding: 10px 10px;
-    border-radius: 12px;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 12px;
-    line-height: 1.35;
-}
-
-.probability-tree-math-title {
-    color: #00bfff;
-    font-weight: 900;
-    font-size: 12px;
-    margin-bottom: 8px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.probability-tree-math-row {
-    margin-bottom: 8px;
-}
-
-.probability-tree-math-row:last-child {
-    margin-bottom: 0;
-}
-
-.probability-tree-math-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-weight: 800;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.probability-tree-math-code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: rgba(255, 255, 255, 0.92);
-}
-
-.probability-tree-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 14px 14px 10px 14px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.probability-tree-title {
-    color: #00bfff;
-    font-weight: 900;
-    font-size: 14px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-.probability-tree-subtitle {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 12px;
-    margin-top: 3px;
-}
-
-.probability-tree-close {
-    border: 2px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.06);
-    color: #fff;
-    border-radius: 10px;
-    width: 34px;
-    height: 34px;
-    cursor: pointer;
-    font-size: 22px;
-    line-height: 28px;
-    font-weight: 800;
-}
-
-.probability-tree-close:hover {
-    border-color: rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.probability-tree-root {
-    padding: 10px 12px 14px 12px;
-    overflow: auto;
-}
-
-.probability-tree-empty {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 13px;
-    padding: 10px 4px;
-}
-
-.probability-tree-player {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-    padding: 10px 10px 8px 10px;
-    margin-bottom: 10px;
-}
-
-.probability-tree-player.me {
-    border-color: rgba(255, 215, 0, 0.35);
-    box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.08) inset;
-}
-
-.probability-tree-player-summary {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    list-style: none;
-}
-
-.probability-tree-player-summary::-webkit-details-marker {
-    display: none;
-}
-
-.probability-tree-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    border: 2px solid rgba(255, 255, 255, 0.8);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
-    flex: 0 0 auto;
-}
-
-.probability-tree-player-name {
-    color: #fff;
-    font-weight: 800;
-    font-size: 13px;
-    flex: 1 1 auto;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.probability-tree-player-prob {
-    font-weight: 900;
-    font-size: 13px;
-    flex: 0 0 auto;
-}
-
-.probability-tree-player-body {
-    padding-top: 10px;
-}
-
-.probability-tree-bar {
-    position: relative;
-    height: 8px;
-    border-radius: 999px;
-    overflow: hidden;
-    margin-bottom: 10px;
-}
-
-.probability-tree-bar-bg {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.probability-tree-bar-fill {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    border-radius: 999px;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
-}
-
-.probability-tree-factors {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.probability-tree-factor {
-    display: grid;
-    grid-template-columns: 18px 1fr auto;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.85);
-    padding: 6px 8px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.18);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.probability-tree-factor.muted {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.probability-tree-branch {
-    color: rgba(0, 191, 255, 0.9);
-    font-weight: 900;
-}
-
-.probability-tree-factor-name {
-    font-weight: 800;
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.probability-tree-factor-value {
-    color: rgba(255, 255, 255, 0.75);
-    font-weight: 700;
-}
-
-.probability-tree-info {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    margin-left: 6px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 12px;
-    font-weight: 900;
-    line-height: 18px;
-    cursor: help;
-    pointer-events: auto;
-}
-
-.probability-tree-info:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.35);
-}
+/* Probability Tree UI removed */
 
 .waiting-overlay {
     position: absolute;
@@ -1296,7 +1115,7 @@ canvas {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
-    transition: all 0.2s;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
     box-shadow: 0 5px 15px rgba(0, 191, 255, 0.4);
 }
 
@@ -1393,13 +1212,153 @@ canvas {
     }
 }
 
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.5;
-    }
+/* Performance hint for UI pop-ins */
+.card-info-tooltip {
+    will-change: transform, opacity;
+}
+
+/* Connection + toast system (moved from inline styles for smoother rendering) */
+.connection-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    pointer-events: none;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(8px);
+}
+
+.connection-status.connected { background: rgba(76, 175, 80, 0.92); }
+.connection-status.reconnecting { background: rgba(255, 193, 7, 0.92); }
+.connection-status.disconnected { background: rgba(244, 67, 54, 0.92); }
+
+.connection-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.28) inset;
+}
+
+.connection-status.connected .connection-dot { background: #4CAF50; }
+.connection-status.reconnecting .connection-dot { background: #FFC107; animation: pulse-soft 1s ease-in-out infinite; }
+.connection-status.disconnected .connection-dot { background: #F44336; }
+
+.toast-stack {
+    position: fixed;
+    top: 60px;
+    right: 10px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 650;
+    letter-spacing: 0.2px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+    animation: slideInRight 0.24s ease-out;
+    min-width: 220px;
+    max-width: min(420px, calc(100vw - 20px));
+    pointer-events: auto;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.toast.info { background: rgba(33, 150, 243, 0.92); }
+.toast.success { background: rgba(76, 175, 80, 0.92); }
+.toast.warning { background: rgba(255, 193, 7, 0.92); color: rgba(0, 0, 0, 0.85); }
+.toast.error { background: rgba(244, 67, 54, 0.92); }
+
+/* Shared modal shell (used by AI Stats, etc.) */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2400;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+}
+
+.modal-panel {
+    width: min(1100px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(0, 20, 40, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.modal-title {
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.modal-close:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.modal-body {
+    padding: 16px;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.modal-loading {
+    padding: 24px 8px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 700;
 }
 
 /* Card Info Tooltip */
@@ -1504,7 +1463,7 @@ canvas {
 }
 
 /* Game Phase Indicator Animation */
-@keyframes pulse {
+@keyframes pulse-phase {
     0%, 100% {
         opacity: 1;
         transform: scale(1);
@@ -1522,4 +1481,32 @@ canvas {
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.8) !important;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
     box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.2) !important;
+    animation: pulse-phase 2s ease-in-out infinite;
+}
+
+/* Global interaction polish */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 3px solid rgba(0, 191, 255, 0.65);
+    outline-offset: 2px;
+}
+
+/* Reduce motion for production accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+    .card:hover,
+    .room-button:hover,
+    .join-button:hover,
+    .end-turn-btn:hover,
+    .tab-button:hover,
+    .ai-stats-button:hover {
+        transform: none !important;
+    }
 }

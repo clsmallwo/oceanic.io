@@ -23,23 +23,156 @@ const PORT = 3001;
 const STATS_FILE = path.join(__dirname, 'ai_stats.json');
 const ML_MODEL_FILE = path.join(__dirname, 'ml_model.json');
 
+// AI difficulty / skill levels (decision-making only; does NOT change deals/elixir)
+const AI_SKILLS = ['easy', 'normal', 'hard', 'hardest'];
+
+function normalizeAiSkill(skill) {
+    if (typeof skill !== 'string') return 'normal';
+    const s = skill.toLowerCase().trim();
+    return AI_SKILLS.includes(s) ? s : 'normal';
+}
+
+function gameWantsML(game) {
+    if (!game) return false;
+    if (normalizeAiSkill(game.aiDifficulty) === 'hardest') return true;
+    if (Array.isArray(game.aiPlayerSkills) && game.aiPlayerSkills.some(s => normalizeAiSkill(s) === 'hardest')) return true;
+    return !!game.useMLAI; // training/legacy
+}
+
+function maybePopulateMlModelTimestamp(game) {
+    try {
+        if (!gameWantsML(game)) return;
+        if (fs.existsSync(ML_MODEL_FILE)) {
+            const parsed = JSON.parse(fs.readFileSync(ML_MODEL_FILE, 'utf8'));
+            game.mlModelLastUpdated = (parsed && typeof parsed.lastUpdated === 'number')
+                ? parsed.lastUpdated
+                : (game.mlModelLastUpdated ?? Date.now());
+        } else {
+            game.mlModelLastUpdated = null;
+        }
+    } catch (err) {
+        console.error('Error reading ML model metadata:', err);
+    }
+}
+
 // Rate limiting: Track events per socket
 const rateLimits = new Map(); // socketId -> { eventCount, resetTime }
 const RATE_LIMIT_WINDOW = 1000; // 1 second
 const RATE_LIMIT_MAX = 20; // Max events per window
 
 // Input validation utilities
-function validateUsername(username) {
-    if (!username || typeof username !== 'string') return false;
-    const trimmed = username.trim();
-    if (trimmed.length === 0 || trimmed.length > 20) return false;
-    // Allow alphanumeric, spaces, and common special chars
-    return /^[a-zA-Z0-9\s\-_]+$/.test(trimmed);
+const USERNAME_MAX_LEN = 16;
+const USERNAME_MIN_LEN = 2;
+const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/; // no spaces
+
+// Keep this list short and high-signal. This is not meant to be exhaustive.
+const INAPPROPRIATE_USERNAME_SUBSTRINGS = [
+    'fuck',
+    'shit',
+    'bitch',
+    'asshole',
+    'cunt',
+    'nigger',
+    'fag',
+    'rape',
+    'hitler',
+    'nazi'
+];
+
+function normalizeForNameFilter(name) {
+    if (!name || typeof name !== 'string') return '';
+    // Normalize common leetspeak and strip non-alphanumerics so "f_u-c k" still matches.
+    const leetMap = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't' };
+    return name
+        .toLowerCase()
+        .split('')
+        .map(ch => leetMap[ch] || ch)
+        .join('')
+        .replace(/[^a-z0-9]/g, '');
+}
+
+function isInappropriateUsername(username) {
+    const normalized = normalizeForNameFilter(username);
+    if (!normalized) return false;
+    return INAPPROPRIATE_USERNAME_SUBSTRINGS.some(bad => normalized.includes(bad));
+}
+
+function makeDefaultUsername(seed = '') {
+    const suffix = (seed && typeof seed === 'string' ? seed : Math.random().toString(36).slice(2, 6))
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 6);
+    return `Player${suffix || Math.random().toString(36).slice(2, 6)}`;
+}
+
+function getUsedUsernames(game) {
+    const used = new Set();
+    try {
+        if (game && game.players) {
+            Object.values(game.players).forEach(p => {
+                if (p && p.username) used.add(String(p.username));
+            });
+        }
+        if (game && game.disconnectedPlayers) {
+            Object.keys(game.disconnectedPlayers).forEach(u => used.add(String(u)));
+        }
+    } catch (e) {
+        // ignore
+    }
+    return used;
+}
+
+function makeUniqueUsername(preferred, used) {
+    const safeBase = sanitizeUsername(preferred).slice(0, USERNAME_MAX_LEN);
+    if (!used || !(used instanceof Set)) return safeBase;
+    if (!used.has(safeBase)) return safeBase;
+
+    for (let i = 2; i < 1000; i++) {
+        const suffix = `-${i}`;
+        const base = safeBase.slice(0, Math.max(1, USERNAME_MAX_LEN - suffix.length));
+        const candidate = `${base}${suffix}`;
+        if (!used.has(candidate)) return candidate;
+    }
+    return makeDefaultUsername();
+}
+
+function makeBotUsername(game) {
+    const used = getUsedUsernames(game);
+    const pool = [
+        'ReefBot',
+        'KelpBot',
+        'TrenchBot',
+        'OrcaBot',
+        'SharkBot',
+        'TurtleBot',
+        'CrabBot',
+        'JellyBot',
+        'UrchinBot',
+        'MinoBot'
+    ];
+    const base = pool[Math.floor(Math.random() * pool.length)];
+    return makeUniqueUsername(base, used);
 }
 
 function sanitizeUsername(username) {
-    if (!username || typeof username !== 'string') return `Player ${Math.random().toString(36).substr(2, 4)}`;
-    return username.trim().substr(0, 20).replace(/[^a-zA-Z0-9\s\-_]/g, '') || `Player ${Math.random().toString(36).substr(2, 4)}`;
+    if (!username || typeof username !== 'string') return makeDefaultUsername();
+    const cleaned = username
+        .trim()
+        .replace(/\s+/g, '') // no spaces
+        .slice(0, USERNAME_MAX_LEN)
+        .replace(/[^a-zA-Z0-9_-]/g, '');
+
+    if (!cleaned) return makeDefaultUsername();
+    if (isInappropriateUsername(cleaned)) return makeDefaultUsername();
+    return cleaned;
+}
+
+function validateUsername(username) {
+    if (!username || typeof username !== 'string') return false;
+    const trimmed = username.trim();
+    if (trimmed.length < USERNAME_MIN_LEN || trimmed.length > USERNAME_MAX_LEN) return false;
+    if (!USERNAME_REGEX.test(trimmed)) return false;
+    if (isInappropriateUsername(trimmed)) return false;
+    return true;
 }
 
 function validateGameId(gameId) {
@@ -386,11 +519,23 @@ async function predictCardScore(game, aiPlayer, card, targetBase = null) {
         const features = extractGameFeatures(game, aiPlayer, card, targetBase);
         const inputTensor = tf.tensor2d([features], [1, 17]);
         const prediction = mlModel.predict(inputTensor);
-        const score = (await prediction.data())[0];
+        let score = (await prediction.data())[0];
 
         // Cleanup tensors
         inputTensor.dispose();
         prediction.dispose();
+
+        // Hardest: blend TF prediction with historical win-rate to stabilize decisions.
+        // No extra information is used (same public game state + learned stats).
+        const stats = aiStats.cardUsage ? aiStats.cardUsage[card.id] : null;
+        if (stats && (stats.wins + stats.losses) >= 5) {
+            const winRate = clamp(stats.wins / (stats.wins + stats.losses), 0, 1);
+            const confidence = clamp((stats.wins + stats.losses) / 50, 0, 1);
+            const statsWeight = 0.15 + 0.25 * confidence; // 0.15..0.40
+            score = clamp(score * (1 - statsWeight) + winRate * statsWeight, 0, 1);
+        } else {
+            score = clamp(score, 0, 1);
+        }
 
         return score;
     } catch (error) {
@@ -610,6 +755,55 @@ function recordGameOutcome(gameId, winner) {
 
 // Game State
 const games = {};
+const LOBBY_ROOM_IDS = Array.from({ length: 12 }, (_, i) => `room${i + 1}`);
+const MAX_PLAYERS_PER_ROOM = 4;
+
+function scheduleGameReset(gameId, delayMs = 10000) {
+    const game = games[gameId];
+    if (!game) return;
+    if (game.resetTimeoutId) return; // already scheduled
+    game.resetTimeoutId = setTimeout(() => resetGame(gameId), delayMs);
+}
+
+function endGame(gameId, winner = null) {
+    const game = games[gameId];
+    if (!game) return;
+
+    // Mark ended and notify clients once
+    if (game.status !== 'ended') {
+        game.status = 'ended';
+        io.to(gameId).emit('gameOver', {
+            winner: winner ? winner.id : null,
+            winnerName: winner ? winner.username : null
+        });
+        recordGameOutcome(gameId, winner);
+        broadcastLobbyRoomStatus();
+    }
+
+    // Always schedule a reset so lobby room status doesn't get stuck "ended"
+    scheduleGameReset(gameId, 10000);
+}
+
+function getLobbyRoomStatus() {
+    return LOBBY_ROOM_IDS.map(roomId => {
+        const game = games[roomId];
+        const playerCount = game && game.players ? Object.keys(game.players).length : 0;
+        const status = game && game.status ? game.status : 'empty';
+        // Treat anything other than "waiting" as not joinable from lobby
+        const inGame = !!game && status !== 'waiting';
+        return {
+            roomId,
+            playerCount,
+            maxPlayers: MAX_PLAYERS_PER_ROOM,
+            status,
+            inGame
+        };
+    });
+}
+
+function broadcastLobbyRoomStatus() {
+    io.emit('roomStatus', getLobbyRoomStatus());
+}
 
 // Grid configuration
 const GRID_SIZE = 40; // 40x40 grid
@@ -1143,6 +1337,56 @@ function getGamePhase(game) {
 }
 
 // AI Player Logic - Makes AI play intelligently
+function getAIConfig(game, aiPlayer) {
+    const skill = normalizeAiSkill(aiPlayer?.aiSkill || game?.aiDifficulty || (game?.useMLAI ? 'hardest' : 'normal'));
+    const mlMode = skill === 'hardest' || !!aiPlayer?.useMLAI || !!game?.useMLAI;
+
+    // These tune decision quality only (randomness, aggressiveness), not resources.
+    switch (skill) {
+        case 'easy':
+            return {
+                skill,
+                mlMode: false,
+                safeElixirThreshold: 8,
+                maxMovesPerTurn: 2,
+                useStrategyProb: 0.25,
+                counterStatsChance: 0.25,
+                counterRandomChance: 0.55
+            };
+        case 'hard':
+            return {
+                skill,
+                mlMode: false,
+                safeElixirThreshold: 4,
+                maxMovesPerTurn: 6,
+                useStrategyProb: 0.85,
+                counterStatsChance: 0.45,
+                counterRandomChance: 0.15
+            };
+        case 'hardest':
+            return {
+                skill,
+                mlMode,
+                safeElixirThreshold: 3,
+                maxMovesPerTurn: 10,
+                useStrategyProb: 0.97,
+                counterStatsChance: 0.6,
+                counterRandomChance: 0.05
+            };
+        case 'normal':
+        default:
+            return {
+                skill: 'normal',
+                mlMode: false,
+                safeElixirThreshold: 6,
+                maxMovesPerTurn: 4,
+                useStrategyProb: 0.6,
+                counterStatsChance: 0.3,
+                counterRandomChance: 0.3
+            };
+    }
+}
+
 async function makeAIMoves(gameId, aiPlayerId) {
     const game = games[gameId];
     if (!game || game.status !== 'playing') return 0;
@@ -1150,11 +1394,8 @@ async function makeAIMoves(gameId, aiPlayerId) {
     const aiPlayer = game.players[aiPlayerId];
     if (!aiPlayer || aiPlayer.eliminated || !aiPlayer.isAI) return 0;
 
-    // When ML mode is enabled, we make the bot more decisive and strategic:
-    // - rely more on statistics (less randomness)
-    // - allow a bit more actions per turn
-    // - be more willing to spend elixir when it has a good play
-    const mlMode = !!(game.useMLAI || aiPlayer.useMLAI);
+    const aiConfig = getAIConfig(game, aiPlayer);
+    const mlMode = !!aiConfig.mlMode;
 
     // Analyze Game State
     const enemies = Object.values(game.players).filter(p => p.id !== aiPlayerId && !p.eliminated);
@@ -1177,16 +1418,14 @@ async function makeAIMoves(gameId, aiPlayerId) {
     const primaryThreat = incomingThreats.length > 0 ? incomingThreats[0] : null;
     const isUnderAttack = incomingThreats.length > 0;
 
-    // 2. Elixir Management - ML is much more aggressive
-    // ML bot: very aggressive, spends quickly
-    // Baseline: more conservative, waits for resources
-    const safeElixirThreshold = mlMode ? 3 : 6;
+    // 2. Elixir Management (varies by skill)
+    const safeElixirThreshold = aiConfig.safeElixirThreshold;
     if (!isUnderAttack && aiPlayer.elixir < safeElixirThreshold) {
         return 0;
     }
 
     let movesThisTurn = 0;
-    const maxMovesPerTurn = mlMode ? 10 : 4;
+    const maxMovesPerTurn = aiConfig.maxMovesPerTurn;
 
     while (aiPlayer.elixir >= 2 && movesThisTurn < maxMovesPerTurn) {
         // Re-evaluate threats each loop iteration
@@ -1207,10 +1446,8 @@ async function makeAIMoves(gameId, aiPlayerId) {
         const myOffensiveTroops = game.troops.filter(t => t.ownerId === aiPlayerId && t.type === 'offense').length;
         const myDefensiveTroops = game.troops.filter(t => t.ownerId === aiPlayerId && t.type === 'defense').length;
 
-        // Strategic decision using statistics
-        // ML mode: 95% strategy / 5% exploration (highly decisive)
-        // Normal mode: 60% strategy / 40% exploration (more random)
-        const useStrategy = Math.random() < (mlMode ? 0.95 : 0.6);
+        // Strategic decision using statistics (varies by skill)
+        const useStrategy = Math.random() < aiConfig.useStrategyProb;
 
         // Use statistics to determine if defensive or offensive strategy is better
         const defensiveWinRate = aiStats.strategyStats.defensivePlays.count > 0
@@ -1248,7 +1485,7 @@ async function makeAIMoves(gameId, aiPlayerId) {
                 // Re-select card for offense
                 const offensiveCards = affordableCards.filter(c => c.type === 'offense');
                 if (offensiveCards.length > 0) {
-                    selectedCard = await selectCardByStats(game, aiPlayer, offensiveCards, 'offense', mlMode, game.players[targetBaseId]);
+                    selectedCard = await selectCardByStats(game, aiPlayer, offensiveCards, 'offense', aiConfig, game.players[targetBaseId]);
                 } else {
                     // No offensive cards affordable, skip turn
                     return movesThisTurn;
@@ -1258,10 +1495,11 @@ async function makeAIMoves(gameId, aiPlayerId) {
 
         if (moveType === 'defense') {
             // DEFENSIVE MODE - Use statistics to select best defensive card
-            selectedCard = await selectCounterCard(game, aiPlayer, primaryThreat, defensiveCards, mlMode);
+            selectedCard = await selectCounterCard(game, aiPlayer, primaryThreat, defensiveCards, aiConfig);
             // Also consider stats
-            const statsCard = await selectCardByStats(game, aiPlayer, defensiveCards, 'defense', mlMode);
-            if (statsCard && Math.random() < 0.6) {
+            const statsCard = await selectCardByStats(game, aiPlayer, defensiveCards, 'defense', aiConfig);
+            const statsPickChance = aiConfig.skill === 'hardest' ? 0.75 : aiConfig.skill === 'hard' ? 0.65 : aiConfig.skill === 'easy' ? 0.4 : 0.6;
+            if (statsCard && Math.random() < statsPickChance) {
                 selectedCard = statsCard; // 60% chance to use stats-based selection
             }
             moveType = 'defense';
@@ -1282,11 +1520,11 @@ async function makeAIMoves(gameId, aiPlayerId) {
             }
 
             // Use statistics to select best performing offensive card
-            selectedCard = await selectCardByStats(game, aiPlayer, offensiveCards, 'offense', mlMode, game.players[targetBaseId]);
+            selectedCard = await selectCardByStats(game, aiPlayer, offensiveCards, 'offense', aiConfig, game.players[targetBaseId]);
             moveType = 'offense';
         } else {
             // RANDOM MODE (30% of the time) - but still use stats for weighting
-            selectedCard = await selectCardByStats(game, aiPlayer, affordableCards, null, mlMode);
+            selectedCard = await selectCardByStats(game, aiPlayer, affordableCards, null, aiConfig);
             moveType = selectedCard.type === 'defense' ? 'defense' : 'offense';
 
             if (moveType === 'offense') {
@@ -1308,15 +1546,19 @@ async function makeAIMoves(gameId, aiPlayerId) {
         if (!selectedCard) break;
 
         // Update ML "thought" for this AI player so the client can display it
-        if (game.useMLAI) {
+        if (mlMode) {
             if (!game.mlAIInsights) {
                 game.mlAIInsights = {};
             }
 
             let score = 0.5;
-            const stats = aiStats && aiStats.cardUsage ? aiStats.cardUsage[selectedCard.id] : null;
-            if (stats && (stats.wins + stats.losses) > 0) {
-                score = clamp(stats.wins / (stats.wins + stats.losses), 0, 1);
+            if (mlModel) {
+                score = await predictCardScore(game, aiPlayer, selectedCard, targetBaseId ? game.players[targetBaseId] : null);
+            } else {
+                const stats = aiStats && aiStats.cardUsage ? aiStats.cardUsage[selectedCard.id] : null;
+                if (stats && (stats.wins + stats.losses) > 0) {
+                    score = clamp(stats.wins / (stats.wins + stats.losses), 0, 1);
+                }
             }
 
             let reason;
@@ -1373,6 +1615,7 @@ async function makeAIMoves(gameId, aiPlayerId) {
             speed: selectedCard.speed,
             range: selectedCard.range,
             targetBaseId: targetBaseId,
+            lockedTargetBaseId: selectedCard.type === 'offense' ? (targetBaseId || null) : undefined,
             state: moveType === 'defense' ? 'defending' : 'moving_to_bridge',
             path: null,
             isWall: selectedCard.isWall || false,
@@ -1411,9 +1654,15 @@ async function makeAIMoves(gameId, aiPlayerId) {
 }
 
 // Select card based on historical statistics or ML model
-// If mlMode is true, use TensorFlow predictions when available
-async function selectCardByStats(game, aiPlayer, availableCards, preferredType, mlMode = false, targetBase = null) {
+// If aiConfigOrMlMode is true/object, use TensorFlow predictions when available
+async function selectCardByStats(game, aiPlayer, availableCards, preferredType, aiConfigOrMlMode = false, targetBase = null) {
     if (availableCards.length === 0) return null;
+    const explicitMlMode = (typeof aiConfigOrMlMode === 'boolean') ? aiConfigOrMlMode : null;
+    const baseConfig = (explicitMlMode === null)
+        ? (aiConfigOrMlMode || getAIConfig(game, aiPlayer))
+        : { ...getAIConfig(game, aiPlayer), skill: explicitMlMode ? 'hardest' : 'normal', mlMode: explicitMlMode };
+    const config = baseConfig || getAIConfig(game, aiPlayer);
+    const mlMode = explicitMlMode === null ? !!config.mlMode : explicitMlMode;
 
     // Filter by type if specified
     const filteredCards = preferredType
@@ -1448,14 +1697,19 @@ async function selectCardByStats(game, aiPlayer, availableCards, preferredType, 
             const stats = aiStats.cardUsage ? aiStats.cardUsage[card.id] : null;
         if (!stats || stats.played < 3) {
             // Not enough data, use base stats
-            return { card, score: 0.5 + Math.random() * 0.2 }; // Slight random preference
+            const noise = config.skill === 'easy' ? 0.45 : config.skill === 'hard' ? 0.12 : 0.2;
+            return { card, score: 0.5 + (Math.random() - 0.5) * noise };
         }
 
         const winRate = stats.wins / (stats.wins + stats.losses);
         const confidence = Math.min(stats.played / 20, 1); // More confidence with more data
 
         // Score based on win rate, weighted by confidence
-        const score = winRate * confidence + 0.5 * (1 - confidence);
+        let score = winRate * confidence + 0.5 * (1 - confidence);
+        // Temperature / noise per skill (easy bots misplay more often)
+        if (config.skill === 'easy') score += (Math.random() - 0.5) * 0.25;
+        if (config.skill === 'hard') score += (Math.random() - 0.5) * 0.08;
+        score = clamp(score, 0, 1);
 
         return { card, score };
     });
@@ -1464,50 +1718,61 @@ async function selectCardByStats(game, aiPlayer, availableCards, preferredType, 
     // Sort by score
     cardScores.sort((a, b) => b.score - a.score);
 
-    if (mlMode) {
-        // In ML mode, be extremely decisive:
-        // - 95% use best card, 5% use second best (minimal exploration)
-        const topCards = cardScores.slice(0, 2);
-        const rand = Math.random();
-
-        if (rand < 0.95 && topCards[0]) {
-            return topCards[0].card;
-        } else if (topCards[1]) {
-            return topCards[1].card;
-        }
-
-        return topCards[0]?.card || filteredCards[0];
-    } else {
-        // Baseline: more random selection (50% best, 30% second, 20% third)
-    const topCards = cardScores.slice(0, 3);
+    // Pick policy by skill (all use the same scored list; only selection randomness differs)
     const rand = Math.random();
 
-        if (rand < 0.5 && topCards[0]) {
-        return topCards[0].card;
-        } else if (rand < 0.8 && topCards[1]) {
-        return topCards[1].card;
-    } else if (topCards[2]) {
-        return topCards[2].card;
+    if (config.skill === 'hardest' || mlMode) {
+        const topCards = cardScores.slice(0, 2);
+        if (rand < 0.97 && topCards[0]) return topCards[0].card;
+        if (topCards[1]) return topCards[1].card;
+        return topCards[0]?.card || filteredCards[0];
     }
 
-    return topCards[0]?.card || filteredCards[0];
+    if (config.skill === 'hard') {
+        const topCards = cardScores.slice(0, 3);
+        if (rand < 0.8 && topCards[0]) return topCards[0].card;
+        if (rand < 0.95 && topCards[1]) return topCards[1].card;
+        if (topCards[2]) return topCards[2].card;
+        return topCards[0]?.card || filteredCards[0];
     }
+
+    if (config.skill === 'easy') {
+        const topCards = cardScores.slice(0, 4);
+        if (rand < 0.35 && topCards[0]) return topCards[0].card;
+        if (rand < 0.6 && topCards[1]) return topCards[1].card;
+        if (rand < 0.8 && topCards[2]) return topCards[2].card;
+        if (topCards[3]) return topCards[3].card;
+        return filteredCards[Math.floor(Math.random() * filteredCards.length)];
+    }
+
+    // Normal: previous baseline distribution (50/30/20 among top 3)
+    const topCards = cardScores.slice(0, 3);
+    if (rand < 0.5 && topCards[0]) return topCards[0].card;
+    if (rand < 0.8 && topCards[1]) return topCards[1].card;
+    if (topCards[2]) return topCards[2].card;
+    return topCards[0]?.card || filteredCards[0];
 }
 
 // Select best card to counter a specific threat (with statistics and randomness)
-async function selectCounterCard(game, aiPlayer, threat, availableCards, mlMode = false) {
+async function selectCounterCard(game, aiPlayer, threat, availableCards, aiConfigOrMlMode = false) {
+    const explicitMlMode = (typeof aiConfigOrMlMode === 'boolean') ? aiConfigOrMlMode : null;
+    const config = (explicitMlMode === null)
+        ? (aiConfigOrMlMode || getAIConfig(game, aiPlayer))
+        : { ...getAIConfig(game, aiPlayer), skill: explicitMlMode ? 'hardest' : 'normal', mlMode: explicitMlMode };
+    const mlMode = explicitMlMode === null ? !!config.mlMode : explicitMlMode;
+
     if (!threat || availableCards.length === 0) {
         // Use statistics-based selection
-        return await selectCardByStats(game, aiPlayer, availableCards, null, mlMode) || availableCards[Math.floor(Math.random() * availableCards.length)];
+        return await selectCardByStats(game, aiPlayer, availableCards, null, config) || availableCards[Math.floor(Math.random() * availableCards.length)];
     }
 
-    // 30% chance to use pure statistics (learned from experience)
-    if (Math.random() < 0.3) {
-        return await selectCardByStats(game, aiPlayer, availableCards, null, mlMode);
+    // Chance to use pure statistics/ML (varies by skill)
+    if (Math.random() < (config.counterStatsChance ?? 0.3)) {
+        return await selectCardByStats(game, aiPlayer, availableCards, null, config);
     }
 
-    // 30% randomness - same as players would have
-    if (Math.random() < 0.3) {
+    // Randomness (varies by skill)
+    if (Math.random() < (config.counterRandomChance ?? 0.3)) {
         return availableCards[Math.floor(Math.random() * availableCards.length)];
     }
 
@@ -1542,11 +1807,12 @@ async function selectCounterCard(game, aiPlayer, threat, availableCards, mlMode 
         // Reduced defensive bias
         if (card.type === 'defense') score += 5;
 
-        // Add statistics weight (30% of score from stats)
+        // Add statistics weight (more on harder bots)
         const stats = aiStats.cardUsage[card.id];
         if (stats && stats.played >= 3) {
             const winRate = stats.wins / (stats.wins + stats.losses);
-            score += (winRate - 0.5) * 30; // Boost score based on win rate
+            const weight = config.skill === 'hardest' ? 45 : config.skill === 'hard' ? 35 : config.skill === 'easy' ? 15 : 30;
+            score += (winRate - 0.5) * weight;
         }
 
         if (score > bestScore) {
@@ -1555,7 +1821,7 @@ async function selectCounterCard(game, aiPlayer, threat, availableCards, mlMode 
         }
     });
 
-    return bestCard || await selectCardByStats(game, aiPlayer, availableCards, null, mlMode) || availableCards[Math.floor(Math.random() * availableCards.length)];
+    return bestCard || await selectCardByStats(game, aiPlayer, availableCards, null, config) || availableCards[Math.floor(Math.random() * availableCards.length)];
 }
 
 // Strategic target selection
@@ -1794,12 +2060,14 @@ function createGame(gameId) {
         // Live mode removed: game is always turn-based
         gameMode: 'turns',
         aiPlayerCount: 0, // Number of AI players (0-3)
+        aiDifficulty: 'normal', // Default AI skill level for bots
+        aiPlayerSkills: [], // Per-bot skill overrides (up to 3), e.g. ['easy','hardest']
         roomLeader: null, // Socket ID of the room leader
         cardUsage: {}, // Track card usage per player: { playerId: { cardId: count } }
         gameStartTime: null, // Track when game started
         disconnectedPlayers: {}, // Store disconnected player states: { username: { ...playerData, disconnectTime } }
         // ML / TensorFlow-related flags (used by the client UI)
-        useMLAI: false,
+        useMLAI: false, // Legacy/derived: may be toggled for training; 'hardest' skill also enables ML logic
         mlModelLastUpdated: null,
         mlAIInsights: {} // { [playerId]: { cardId, cardName, score?, moveType?, targetBaseId?, reason? } }
     };
@@ -1863,6 +2131,13 @@ function getBalancedCard(playerHand, defensiveCount = null) {
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
 
+    // Let clients render lobby room counts / in-game state
+    socket.emit('roomStatus', getLobbyRoomStatus());
+    socket.on('getRoomStatus', () => {
+        if (!checkRateLimit(socket.id)) return;
+        socket.emit('roomStatus', getLobbyRoomStatus());
+    });
+
     // Clean up rate limit on disconnect
     socket.on('disconnect', () => {
         rateLimits.delete(socket.id);
@@ -1902,6 +2177,7 @@ io.on('connection', (socket) => {
                     }
 
                     io.to(gameId).emit('gameState', serializeGameState(game));
+                    broadcastLobbyRoomStatus();
                 }
                 break;
             }
@@ -1930,13 +2206,20 @@ io.on('connection', (socket) => {
         // Validate and sanitize username
         let username;
         if (typeof data === 'string') {
-            username = `Player ${socket.id.substr(0, 4)}`;
+            username = makeDefaultUsername(socket.id.substr(0, 4));
         } else {
             const providedUsername = data.username;
-            if (providedUsername && validateUsername(providedUsername)) {
+            if (providedUsername) {
+                if (!validateUsername(providedUsername)) {
+                    socket.emit(
+                        'error',
+                        `Invalid username. Use ${USERNAME_MIN_LEN}-${USERNAME_MAX_LEN} chars: letters, numbers, _ or -. No spaces.`
+                    );
+                    return;
+                }
                 username = sanitizeUsername(providedUsername);
             } else {
-                username = sanitizeUsername(providedUsername) || `Player ${socket.id.substr(0, 4)}`;
+                username = makeDefaultUsername(socket.id.substr(0, 4));
             }
         }
 
@@ -1989,6 +2272,7 @@ io.on('connection', (socket) => {
 
                 // Notify others
                 socket.to(gameId).emit('toast', { message: `${username} reconnected!`, type: 'success' });
+                broadcastLobbyRoomStatus();
                 return;
             } else {
                 // Expired
@@ -2003,6 +2287,12 @@ io.on('connection', (socket) => {
         // Check if player is already in a game
         if (game.players[socket.id]) {
             socket.emit('error', 'You are already in this game');
+            return;
+        }
+
+        // Do not allow new joins once the game has started (or ended but not reset yet)
+        if (game.status !== 'waiting') {
+            socket.emit('error', 'Room is in game. Please choose another room.');
             return;
         }
 
@@ -2054,6 +2344,7 @@ io.on('connection', (socket) => {
         socket.join(gameId);
         io.to(gameId).emit('gameState', serializeGameState(game));
         socket.emit('playerInfo', { id: socket.id, username, ...playerInfo });
+        broadcastLobbyRoomStatus();
 
         if (Object.keys(game.players).length >= 2) {
             game.turnOrder = Object.keys(game.players);
@@ -2112,31 +2403,25 @@ io.on('connection', (socket) => {
             game.aiPlayerCount = newAICount;
         }
 
-        // Toggle TensorFlow / ML-based AI
-        if (typeof settings.useMLAI === 'boolean') {
-            game.useMLAI = settings.useMLAI;
-
-            if (settings.useMLAI) {
-                // When enabling ML, attempt to read the model metadata so the
-                // client can display a meaningful "last updated" timestamp.
-                try {
-                    if (fs.existsSync(ML_MODEL_FILE)) {
-                        const raw = fs.readFileSync(ML_MODEL_FILE, 'utf8');
-                        const parsed = JSON.parse(raw);
-                        if (parsed && typeof parsed.lastUpdated === 'number') {
-                            game.mlModelLastUpdated = parsed.lastUpdated;
-                        } else {
-                            game.mlModelLastUpdated = Date.now();
-                        }
-                    } else {
-                        // Model file not present yet – keep timestamp null so UI shows "Pending training"
-                        game.mlModelLastUpdated = null;
-                    }
-                } catch (err) {
-                    console.error('Error reading ML model metadata:', err);
-                }
-            }
+        // AI skill settings (new)
+        if (typeof settings.aiDifficulty === 'string') {
+            game.aiDifficulty = normalizeAiSkill(settings.aiDifficulty);
         }
+        if (Array.isArray(settings.aiPlayerSkills)) {
+            const sanitized = settings.aiPlayerSkills
+                .slice(0, 3)
+                .map(s => normalizeAiSkill(s));
+            game.aiPlayerSkills = sanitized;
+        }
+
+        // Legacy: old clients may still send useMLAI boolean; map to global difficulty.
+        if (typeof settings.useMLAI === 'boolean') {
+            game.aiDifficulty = settings.useMLAI ? 'hardest' : 'normal';
+        }
+
+        // Derived ML flags for UI (and for any server-side features keyed off game.useMLAI)
+        game.useMLAI = gameWantsML(game);
+        maybePopulateMlModelTimestamp(game);
 
         io.to(gameId).emit('gameState', serializeGameState(game));
     });
@@ -2194,10 +2479,14 @@ io.on('connection', (socket) => {
                 playerInfo.y = playerInfo.gridY * CELL_SIZE + CELL_SIZE / 2;
 
                 const aiHand = getRandomHand();
+                const aiUsername = makeBotUsername(game);
+                const aiSkill = normalizeAiSkill((game.aiPlayerSkills && game.aiPlayerSkills[i]) || game.aiDifficulty);
                 game.players[aiId] = {
                     id: aiId,
-                    username: `AI Bot ${i + 1}`,
+                    username: aiUsername,
                     isAI: true,
+                    aiSkill,
+                    useMLAI: aiSkill === 'hardest',
                     ...playerInfo,
                     baseHp: 1000,
                     elixir: 8, // Same as humans for fairness - increased from 5 to 8
@@ -2205,9 +2494,13 @@ io.on('connection', (socket) => {
                     nextCard: getBalancedCard(aiHand, 0), // AI starts with 0 defensive units
                     eliminated: false
                 };
-                console.log(`Added AI Bot ${i + 1} with ${aiHand.length} cards, elixir: 8`);
+                console.log(`Added AI ${aiUsername} with ${aiHand.length} cards, elixir: 8`);
             }
         }
+
+        // Ensure derived ML flags/timestamp are set for UI once bots are created
+        game.useMLAI = gameWantsML(game);
+        maybePopulateMlModelTimestamp(game);
 
         const totalPlayers = Object.keys(game.players).length;
         if (totalPlayers >= 2) {
@@ -2223,6 +2516,7 @@ io.on('connection', (socket) => {
 
             startGameLoop(gameId);
             io.to(gameId).emit('gameState', serializeGameState(game));
+            broadcastLobbyRoomStatus();
         }
     });
 
@@ -2327,7 +2621,9 @@ io.on('connection', (socket) => {
 
         // Set the target for this offensive unit
         troop.targetBaseId = targetBaseId;
+        troop.lockedTargetBaseId = targetBaseId;
         troop.state = 'moving_to_bridge';
+        troop.path = []; // force immediate repath to new target
 
         io.to(gameId).emit('gameState', serializeGameState(game));
     });
@@ -2613,6 +2909,7 @@ io.on('connection', (socket) => {
             target: null,
             state: card.type === 'defense' ? 'guarding' : 'moving_to_bridge',
             targetBaseId: targetBaseId || null, // Player-selected target
+            lockedTargetBaseId: card.type === 'offense' ? (targetBaseId || null) : undefined,
             path: [], // A* pathfinding path
             patrolAngle: Math.random() * Math.PI * 2,
             patrolRadius: 3, // grid cells
@@ -2675,6 +2972,65 @@ function isOnCentralBridge(x, y) {
     const onVertical = Math.abs(x - centerX) <= Math.floor(crossWidth / 2);
 
     return onHorizontal || onVertical;
+}
+
+// ============================================================================
+// OFFENSE TARGETING: sticky targets per troop
+// ============================================================================
+function isValidEnemyBaseId(game, ownerId, targetBaseId) {
+    if (!targetBaseId) return false;
+    const p = game.players && game.players[targetBaseId];
+    if (!p) return false;
+    if (p.eliminated) return false;
+    if (p.id === ownerId) return false;
+    return true;
+}
+
+function getActiveEnemyBases(game, ownerId) {
+    return Object.values(game.players || {}).filter(p => p && !p.eliminated && p.id !== ownerId);
+}
+
+function pickClosestEnemyBase(game, ownerId, fromGridX, fromGridY) {
+    const enemies = getActiveEnemyBases(game, ownerId);
+    if (enemies.length === 0) return null;
+
+    let best = enemies[0];
+    let bestDist = Math.abs(fromGridX - best.gridX) + Math.abs(fromGridY - best.gridY);
+    for (const e of enemies) {
+        const d = Math.abs(fromGridX - e.gridX) + Math.abs(fromGridY - e.gridY);
+        if (d < bestDist) {
+            bestDist = d;
+            best = e;
+        }
+    }
+    return best.id;
+}
+
+// Ensures an offensive troop has a stable target. Only changes when the target is invalid/eliminated.
+function ensureLockedOffenseTarget(game, troop) {
+    if (!troop || troop.type !== 'offense') return null;
+
+    const prevLocked = troop.lockedTargetBaseId || null;
+
+    // Prefer locked target if still valid
+    if (isValidEnemyBaseId(game, troop.ownerId, troop.lockedTargetBaseId)) {
+        troop.targetBaseId = troop.lockedTargetBaseId;
+        return { targetBaseId: troop.lockedTargetBaseId, changed: false };
+    }
+
+    // If targetBaseId is valid, lock onto it
+    if (isValidEnemyBaseId(game, troop.ownerId, troop.targetBaseId)) {
+        troop.lockedTargetBaseId = troop.targetBaseId;
+        return { targetBaseId: troop.targetBaseId, changed: prevLocked !== troop.targetBaseId };
+    }
+
+    // Otherwise assign a new target (closest enemy to minimize "backtracking" vibes)
+    const next = pickClosestEnemyBase(game, troop.ownerId, troop.gridX, troop.gridY);
+    if (!next) return null;
+
+    troop.lockedTargetBaseId = next;
+    troop.targetBaseId = next;
+    return { targetBaseId: next, changed: prevLocked !== next };
 }
 
 // Pathfinding: simple breadth-first search over the grid.
@@ -2972,14 +3328,8 @@ function nextTurn(gameId) {
     // Check for winner before proceeding
     const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
     if (activePlayers.length <= 1) {
-        game.status = 'ended';
         const winner = activePlayers.length === 1 ? activePlayers[0] : null;
-        io.to(gameId).emit('gameOver', {
-            winner: winner ? winner.id : null,
-            winnerName: winner ? winner.username : null
-        });
-        recordGameOutcome(gameId, winner);
-        setTimeout(() => resetGame(gameId), 10000);
+        endGame(gameId, winner);
         return;
     }
 
@@ -2992,14 +3342,8 @@ function nextTurn(gameId) {
     // Check for winner after combat
     const activePlayersAfterCombat = Object.values(game.players).filter(p => p && !p.eliminated);
     if (activePlayersAfterCombat.length <= 1) {
-        game.status = 'ended';
         const winner = activePlayersAfterCombat.length === 1 ? activePlayersAfterCombat[0] : null;
-        io.to(gameId).emit('gameOver', {
-            winner: winner ? winner.id : null,
-            winnerName: winner ? winner.username : null
-        });
-        recordGameOutcome(gameId, winner);
-        setTimeout(() => resetGame(gameId), 10000);
+        endGame(gameId, winner);
         return;
     }
 
@@ -3021,7 +3365,7 @@ function nextTurn(gameId) {
         console.error(`Invalid turn order for game ${gameId}`);
         game.turnOrder = Object.keys(game.players).filter(id => game.players[id] && !game.players[id].eliminated);
         if (game.turnOrder.length === 0) {
-            game.status = 'ended';
+            endGame(gameId, null);
             return;
         }
     }
@@ -3048,8 +3392,7 @@ function nextTurn(gameId) {
     if (attempts >= maxAttempts) {
         // All players eliminated or invalid state
         console.error(`Could not find next player for game ${gameId}`);
-        game.status = 'ended';
-        io.to(gameId).emit('gameOver', { winner: null, winnerName: null });
+        endGame(gameId, null);
         return;
     }
 
@@ -3133,17 +3476,8 @@ function applyCombatDamage(game, gameId) {
                         // Check for winner
                         const activePlayers = Object.values(game.players).filter(p => !p.eliminated);
                         if (activePlayers.length === 1 && Object.keys(game.players).length > 1) {
-                            game.status = 'ended';
                             const winner = activePlayers[0];
-                            io.to(gameId).emit('gameOver', { winner: winner.id, winnerName: winner.username });
-
-                            // Record game outcome for AI learning
-                            recordGameOutcome(gameId, winner);
-
-                            // Reset room after 10 seconds
-                            setTimeout(() => {
-                                resetGame(gameId);
-                            }, 10000);
+                            endGame(gameId, winner);
                         }
                     }
                 }
@@ -3151,37 +3485,54 @@ function applyCombatDamage(game, gameId) {
         }
 
         // Check for troop vs troop combat
+        // Turrets: shoot ONE target per combat tick (prevents "spray" and fixes animation spam).
+        if (troop.isTurret) {
+            let bestTarget = null;
+            let bestDist = Infinity;
+            for (const other of game.troops) {
+                if (other.ownerId === troop.ownerId) continue;
+                const dist = Math.abs(other.gridX - troop.gridX) + Math.abs(other.gridY - troop.gridY);
+                if (dist <= troop.range && dist < bestDist) {
+                    bestDist = dist;
+                    bestTarget = other;
+                }
+            }
+
+            if (bestTarget) {
+                const turretDamage = troop.damage * 2; // Double turret damage
+                bestTarget.hp -= turretDamage;
+                combatEvents.push({
+                    type: 'projectile',
+                    attackerId: troop.id,
+                    targetId: bestTarget.id,
+                    damage: turretDamage,
+                    fromX: troop.x,
+                    fromY: troop.y,
+                    toX: bestTarget.x,
+                    toY: bestTarget.y,
+                    isBase: false
+                });
+            }
+
+            return; // Turret only shoots one target per tick
+        }
+
+        // Non-turrets: current behavior (can hit multiple enemies in range)
         game.troops.forEach(other => {
             if (other.ownerId === troop.ownerId) return;
 
             const dist = Math.abs(other.gridX - troop.gridX) + Math.abs(other.gridY - troop.gridY);
             if (dist <= troop.range) {
                 other.hp -= troop.damage;
-
-                // Special handling for turrets - emit projectile event
-                if (troop.isTurret) {
-                    combatEvents.push({
-                        type: 'projectile',
-                        attackerId: troop.id,
-                        targetId: other.id,
-                        damage: troop.damage,
-                        fromX: troop.x,
-                        fromY: troop.y,
-                        toX: other.x,
-                        toY: other.y,
-                        isBase: false
-                    });
-                } else {
-                    combatEvents.push({
-                        type: 'attack',
-                        attackerId: troop.id,
-                        targetId: other.id,
-                        damage: troop.damage,
-                        x: other.x,
-                        y: other.y,
-                        isBase: false
-                    });
-                }
+                combatEvents.push({
+                    type: 'attack',
+                    attackerId: troop.id,
+                    targetId: other.id,
+                    damage: troop.damage,
+                    x: other.x,
+                    y: other.y,
+                    isBase: false
+                });
             }
         });
     });
@@ -3211,6 +3562,12 @@ function applyCombatDamage(game, gameId) {
 function resetGame(gameId) {
     const game = games[gameId];
     if (game) {
+        // Clear any scheduled reset for this room
+        if (game.resetTimeoutId) {
+            clearTimeout(game.resetTimeoutId);
+            game.resetTimeoutId = null;
+        }
+
         // Clean up intervals to prevent memory leaks
         if (game.elixirRegenInterval) {
             clearInterval(game.elixirRegenInterval);
@@ -3231,6 +3588,7 @@ function resetGame(gameId) {
         // Delete the game to reset it
         delete games[gameId];
         console.log(`Room ${gameId} has been reset`);
+        broadcastLobbyRoomStatus();
     }
 }
 
@@ -3605,52 +3963,19 @@ function moveTroopsOnTurnEnd(game, aiOnly = false, options = {}) {
             }
         } else {
             // Offensive units: pathfind to target base
-            // Check if only 2 players remain - auto-target enemy base
-            const activePlayers = Object.values(game.players).filter(p => p && !p.eliminated);
-            const isTwoPlayerMode = activePlayers.length === 2;
+            const ensured = ensureLockedOffenseTarget(game, troop);
+            if (!ensured) return;
 
-            if (!troop.targetBaseId) {
-                // Pick the target that was assigned when deployed, or a random enemy
-                const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
-                if (enemies.length > 0) {
-                    // If only 2 players, always target the enemy base
-                    if (isTwoPlayerMode && enemies.length === 1) {
-                        troop.targetBaseId = enemies[0].id;
-                    } else {
-                        const randomEnemy = enemies[Math.floor(Math.random() * enemies.length)];
-                        troop.targetBaseId = randomEnemy.id;
-                    }
-                }
+            if (ensured.changed) {
+                // Target changed (only when prior target is invalid/eliminated or user retargets)
+                troop.path = [];
             }
 
-            const targetBase = game.players[troop.targetBaseId];
-            if (!targetBase || targetBase.eliminated) {
-                // Target is gone, pick new target (prefer closest enemy to minimize "retreating" appearance)
-                const enemies = Object.values(game.players).filter(p => p.id !== troop.ownerId && !p.eliminated);
-                if (enemies.length > 0) {
-                    // Find closest enemy to avoid backtracking
-                    let closestEnemy = enemies[0];
-                    let minDist = Math.abs(troop.gridX - closestEnemy.gridX) + Math.abs(troop.gridY - closestEnemy.gridY);
+            const targetBase = game.players[ensured.targetBaseId];
+            if (!targetBase || targetBase.eliminated) return;
 
-                    for (const enemy of enemies) {
-                        const dist = Math.abs(troop.gridX - enemy.gridX) + Math.abs(troop.gridY - enemy.gridY);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            closestEnemy = enemy;
-                        }
-                    }
-
-                    troop.targetBaseId = closestEnemy.id;
-                    targetGridX = closestEnemy.gridX;
-                    targetGridY = closestEnemy.gridY;
-
-                    // Clear path so it recalculates to new target
-                    troop.path = [];
-                }
-            } else {
-                targetGridX = targetBase.gridX;
-                targetGridY = targetBase.gridY;
-            }
+            targetGridX = targetBase.gridX;
+            targetGridY = targetBase.gridY;
         }
 
         if (targetGridX === undefined || targetGridY === undefined) return;
@@ -3852,7 +4177,7 @@ async function runTrainingGame() {
         const mlAiId = 'ml_ai';
         game.players[mlAiId] = {
             id: mlAiId,
-            username: 'ML Bot',
+            username: 'MLBot',
             isAI: true,
             useMLAI: true, // Enable ML mode
             ...positions[0],
@@ -3869,7 +4194,7 @@ async function runTrainingGame() {
         const baselineAiId = 'baseline_ai';
         game.players[baselineAiId] = {
             id: baselineAiId,
-            username: 'Baseline Bot',
+            username: 'BaselineBot',
             isAI: true,
             useMLAI: false, // Normal mode
             ...positions[1],

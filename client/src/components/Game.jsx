@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import io from 'socket.io-client';
 import './Game.css';
-import ProbabilityTree from './ProbabilityTree';
+import { sanitizeUsernameInput, validateUsername, USERNAME_RULES } from '../utils/username';
 import sharkIcon from '../assets/shark.svg';
 import crabIcon from '../assets/crab.svg';
 import jellyfishIcon from '../assets/jellyfish.svg';
@@ -126,10 +126,14 @@ const Game = () => {
     const [gameId, setGameId] = useState('room1');
     const [endState, setEndState] = useState(null); // { outcome: 'win' | 'lose', winnerId?: string }
     const [username, setUsername] = useState('');
-    const [movementMode, setMovementMode] = useState('automatic');
+    const [movementMode] = useState('automatic');
     const [showLobby, setShowLobby] = useState(true);
     const [currentTab, setCurrentTab] = useState('lobby'); // 'lobby' or 'training'
     const [selectedRoom, setSelectedRoom] = useState('room1');
+    const [roomStatusById, setRoomStatusById] = useState({});
+    const [joinPending, setJoinPending] = useState(false);
+    const joinPendingRef = useRef(false);
+    const pendingJoinGameIdRef = useRef(null);
 
     const troopIconImagesRef = useRef({});
     const mountainXRef = useRef(null);
@@ -140,7 +144,7 @@ const Game = () => {
     const [hoveredCell, setHoveredCell] = useState(null);
     const [targetSelectionMode, setTargetSelectionMode] = useState(false);
     const [pendingOffensiveCard, setPendingOffensiveCard] = useState(null);
-    const [selectedTroop, setSelectedTroop] = useState(null);
+    const [_selectedTroop, setSelectedTroop] = useState(null);
     const [possibleMoves, setPossibleMoves] = useState([]);
     const [draggingTroop, setDraggingTroop] = useState(null);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -153,9 +157,11 @@ const Game = () => {
     const [hoveredCard, setHoveredCard] = useState(null);
     const [hoveredCardPosition, setHoveredCardPosition] = useState({ x: 0, y: 0 });
     const [projectiles, setProjectiles] = useState([]);
+    const turretAimRef = useRef({}); // { [turretId]: { angle, time } }
     const [showAIStats, setShowAIStats] = useState(false);
     const [aiStatsData, setAiStatsData] = useState(null);
-    const [showProbabilityTree, setShowProbabilityTree] = useState(false);
+    const aiStatsCloseBtnRef = useRef(null);
+    const lastFocusedElRef = useRef(null);
 
     // Precompute stack layout so multiple troops on the same tile are clearly visible.
     const troopStackLayout = useMemo(() => {
@@ -203,10 +209,42 @@ const Game = () => {
         };
     }, []);
 
+    // AI Stats modal focus + escape handling
+    useEffect(() => {
+        if (!showAIStats) return;
+
+        lastFocusedElRef.current = document.activeElement;
+        const t = setTimeout(() => aiStatsCloseBtnRef.current?.focus?.(), 0);
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setShowAIStats(false);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+
+        return () => {
+            clearTimeout(t);
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [showAIStats]);
+
+    useEffect(() => {
+        if (showAIStats) return;
+        const el = lastFocusedElRef.current;
+        if (el && typeof el.focus === 'function') el.focus();
+    }, [showAIStats]);
+
     // Keep hasJoinedRef in sync with joined state
     useEffect(() => {
         hasJoinedRef.current = joined;
     }, [joined]);
+
+    // Keep joinPendingRef in sync so socket callbacks don't capture stale state
+    useEffect(() => {
+        joinPendingRef.current = joinPending;
+    }, [joinPending]);
 
     useEffect(() => {
         socket.on('connect', () => {
@@ -324,6 +362,15 @@ const Game = () => {
                     players: Object.keys(state.players)
                 });
             }
+
+            // Confirm lobby join only after we actually receive gameState for the room we requested.
+            if (joinPendingRef.current && pendingJoinGameIdRef.current && state?.id === pendingJoinGameIdRef.current) {
+                setJoined(true);
+                setShowLobby(false);
+                setJoinPending(false);
+                pendingJoinGameIdRef.current = null;
+                showToast(`Joined ${state.id}`, 'success');
+            }
         });
 
         socket.on('playerInfo', (info) => {
@@ -348,6 +395,14 @@ const Game = () => {
         socket.on('error', (msg) => {
             console.error('Server error:', msg);
             showToast(msg || 'An error occurred', 'error');
+
+            // If a join was pending, treat this as a join failure and keep the user in the lobby.
+            if (joinPendingRef.current) {
+                setJoinPending(false);
+                pendingJoinGameIdRef.current = null;
+                setJoined(false);
+                setShowLobby(true);
+            }
         });
 
         socket.on('roomReset', () => {
@@ -363,10 +418,27 @@ const Game = () => {
             setProjectiles([]);
         });
 
+        socket.on('roomStatus', (rooms) => {
+            const next = {};
+            (rooms || []).forEach(r => {
+                if (r && r.roomId) next[r.roomId] = r;
+            });
+            setRoomStatusById(next);
+        });
+
         socket.on('combatEvents', (events) => {
             // Handle projectile events
             events.forEach(event => {
                 if (event.type === 'projectile') {
+                    // Store turret aim direction so the barrel can rotate toward its most recent shot
+                    if (event.attackerId && typeof event.fromX === 'number' && typeof event.fromY === 'number' &&
+                        typeof event.toX === 'number' && typeof event.toY === 'number') {
+                        turretAimRef.current[event.attackerId] = {
+                            angle: Math.atan2(event.toY - event.fromY, event.toX - event.fromX),
+                            time: Date.now()
+                        };
+                    }
+
                     const projectile = {
                         id: `projectile_${Date.now()}_${Math.random()}`,
                         fromX: event.fromX,
@@ -420,6 +492,7 @@ const Game = () => {
             socket.off('gameOver');
             socket.off('error');
             socket.off('roomReset');
+            socket.off('roomStatus');
             socket.off('aiStats');
             socket.off('mlTrainingStatus');
             socket.off('trainingStarted');
@@ -433,6 +506,18 @@ const Game = () => {
             // (No training interval to clean up anymore)
         };
     }, []);
+
+    // Poll for room status while in the lobby (Game tab)
+    useEffect(() => {
+        if (!showLobby || currentTab !== 'lobby') return;
+
+        socket.emit('getRoomStatus');
+        const interval = setInterval(() => {
+            socket.emit('getRoomStatus');
+        }, 2000);
+
+        return () => clearInterval(interval);
+    }, [showLobby, currentTab]);
 
     // Poll for training status when in lobby
     useEffect(() => {
@@ -907,8 +992,9 @@ const Game = () => {
                 ctx.lineCap = 'round';
                 ctx.beginPath();
                 ctx.moveTo(displayX, displayY);
-                // Point barrel towards nearest enemy or upward
-                const angle = Math.atan2(0, -1); // Default upward
+                // Point barrel towards last shot target (fallback: upward)
+                const aim = turretAimRef.current[t.id];
+                const angle = aim && (Date.now() - aim.time) < 1500 ? aim.angle : Math.atan2(0, -1);
                 ctx.lineTo(displayX + Math.cos(angle) * (radius + 10), displayY + Math.sin(angle) * (radius + 10));
                 ctx.stroke();
 
@@ -1131,7 +1217,8 @@ const Game = () => {
                 ctx.lineCap = 'round';
                 ctx.beginPath();
                 ctx.moveTo(displayX, displayY);
-                const angle = Math.atan2(0, -1);
+                const aim = turretAimRef.current[t.id];
+                const angle = aim && (Date.now() - aim.time) < 1500 ? aim.angle : Math.atan2(0, -1);
                 ctx.lineTo(displayX + Math.cos(angle) * (radius + 10), displayY + Math.sin(angle) * (radius + 10));
                 ctx.stroke();
 
@@ -1196,27 +1283,22 @@ const Game = () => {
     }, [draggingTroop]);
 
     const handleJoin = () => {
-        const trimmedUsername = username.trim();
-
-        // Validate username
-        if (!trimmedUsername) {
-            showToast('Please enter a username', 'error');
+        const validation = validateUsername(username);
+        if (!validation.ok) {
+            showToast(validation.reason, 'error');
             return;
         }
-
-        if (trimmedUsername.length > 20) {
-            showToast('Username must be 20 characters or less', 'error');
-            return;
-        }
-
-        if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmedUsername)) {
-            showToast('Username can only contain letters, numbers, spaces, hyphens, and underscores', 'error');
-            return;
-        }
+        const sanitizedUsername = validation.username;
 
         // Validate game ID
         if (!gameId || gameId.trim().length === 0) {
             showToast('Please select a room', 'error');
+            return;
+        }
+
+        const selectedStatus = roomStatusById?.[gameId];
+        if (selectedStatus?.inGame) {
+            showToast('Room is in game. Please choose another room.', 'error');
             return;
         }
 
@@ -1227,18 +1309,20 @@ const Game = () => {
         }
 
         try {
-            socket.emit('joinGame', { gameId, username: trimmedUsername, movementMode });
+            setJoinPending(true);
+            pendingJoinGameIdRef.current = gameId;
+            socket.emit('joinGame', { gameId, username: sanitizedUsername, movementMode });
             // Cache last successful join info so we can auto-rejoin on transient disconnects
             lastJoinInfoRef.current = {
                 gameId,
-                username: trimmedUsername,
+                username: sanitizedUsername,
                 movementMode
             };
-            setJoined(true);
-            setShowLobby(false);
-            showToast(`Joined ${gameId}`, 'success');
+            showToast(`Joining ${gameId}...`, 'info');
         } catch (error) {
             console.error('Error joining game:', error);
+            setJoinPending(false);
+            pendingJoinGameIdRef.current = null;
             showToast('Failed to join game. Please try again.', 'error');
         }
     };
@@ -1541,43 +1625,25 @@ const Game = () => {
     if (!joined || showLobby) {
         return (
             <div className="lobby">
-                <h1 style={{ fontSize: '4rem', color: '#00bfff', textShadow: '0 0 20px #00bfff', marginBottom: '1rem' }}>🌊 Oceanic.io</h1>
+                <h1 className="lobby-title">Oceanic.io</h1>
 
                 {/* Tab Navigation */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '2rem' }}>
+                <div className="lobby-tabs" role="tablist" aria-label="Home tabs">
                     <button
                         onClick={() => setCurrentTab('lobby')}
-                        style={{
-                            padding: '15px 40px',
-                            background: currentTab === 'lobby' ? 'linear-gradient(135deg, #00bfff, #0088cc)' : 'rgba(255,255,255,0.1)',
-                            border: currentTab === 'lobby' ? '2px solid #00bfff' : '2px solid rgba(255,255,255,0.2)',
-                            borderRadius: '12px',
-                            color: '#fff',
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            boxShadow: currentTab === 'lobby' ? '0 5px 20px rgba(0,191,255,0.4)' : 'none'
-                        }}
+                        className={`tab-button ${currentTab === 'lobby' ? 'active' : ''}`}
+                        role="tab"
+                        aria-selected={currentTab === 'lobby'}
                     >
-                        🎮 Game Lobby
+                        Game
                     </button>
                     <button
                         onClick={() => setCurrentTab('training')}
-                        style={{
-                            padding: '15px 40px',
-                            background: currentTab === 'training' ? 'linear-gradient(135deg, #00e5ff, #9c27b0)' : 'rgba(255,255,255,0.1)',
-                            border: currentTab === 'training' ? '2px solid #00e5ff' : '2px solid rgba(255,255,255,0.2)',
-                            borderRadius: '12px',
-                            color: '#fff',
-                            fontSize: '1.2rem',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s',
-                            boxShadow: currentTab === 'training' ? '0 5px 20px rgba(0,229,255,0.4)' : 'none'
-                        }}
+                        className={`tab-button ${currentTab === 'training' ? 'active training' : ''}`}
+                        role="tab"
+                        aria-selected={currentTab === 'training'}
                     >
-                        🧠 ML Training
+                        Training
                     </button>
                 </div>
 
@@ -1588,74 +1654,50 @@ const Game = () => {
                             <input
                                 type="text"
                                 value={username}
-                                onChange={(e) => setUsername(e.target.value)}
+                                onChange={(e) => setUsername(sanitizeUsernameInput(e.target.value))}
+                                onKeyDown={(e) => {
+                                    if (e.key === ' ') e.preventDefault();
+                                }}
                                 placeholder="Enter your username"
-                                maxLength={20}
+                                maxLength={USERNAME_RULES.USERNAME_MAX_LEN}
                             />
                         </div>
 
                         <div className="lobby-section">
                             <label>Select Room</label>
                             <div className="room-grid">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => (
-                                    <button
-                                        key={num}
-                                        className={`room-button ${selectedRoom === `room${num}` ? 'selected' : ''}`}
-                                        onClick={() => {
-                                            setSelectedRoom(`room${num}`);
-                                            setGameId(`room${num}`);
-                                        }}
-                                    >
-                                        Room {num}
-                                    </button>
-                                ))}
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(num => {
+                                    const roomId = `room${num}`;
+                                    const status = roomStatusById?.[roomId];
+                                    const playerCount = typeof status?.playerCount === 'number' ? status.playerCount : 0;
+                                    const maxPlayers = typeof status?.maxPlayers === 'number' ? status.maxPlayers : 4;
+                                    const inGame = !!status?.inGame;
+
+                                    return (
+                                        <button
+                                            key={num}
+                                            className={`room-button ${selectedRoom === roomId ? 'selected' : ''} ${inGame ? 'in-game' : ''}`}
+                                            disabled={inGame}
+                                            onClick={() => {
+                                                if (inGame) return;
+                                                setSelectedRoom(roomId);
+                                                setGameId(roomId);
+                                            }}
+                                        >
+                                            <div className="room-title">Room {num}</div>
+                                            <div className="room-meta">
+                                                <span className="room-count">{playerCount} / {maxPlayers}</span>
+                                                {inGame && <span className="room-in-game-tag">In game</span>}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
-                        <div className="lobby-section">
-                            <label>Movement Mode</label>
-                            <div className="mode-selection">
-                                <button
-                                    className={`mode-button ${movementMode === 'automatic' ? 'selected' : ''}`}
-                                    onClick={() => setMovementMode('automatic')}
-                                >
-                                    ⚙️ Automatic
-                                    <span className="mode-desc">Troops move automatically</span>
-                                </button>
-                                <button
-                                    className={`mode-button ${movementMode === 'manual' ? 'selected' : ''}`}
-                                    onClick={() => setMovementMode('manual')}
-                                >
-                                    🎮 Manual
-                                    <span className="mode-desc">Control troop movement with arrow keys</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="lobby-buttons" style={{ display: 'flex', gap: '20px', marginTop: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button className="join-button" onClick={handleJoin}>Join Game</button>
-                            <button
-                                className="ai-stats-button"
-                                onClick={() => {
-                                    socket.emit('getAIStats');
-                                    setShowAIStats(true);
-                                }}
-                                style={{
-                                    padding: '18px 30px',
-                                    background: 'linear-gradient(135deg, #9c27b0, #673ab7)',
-                                    border: 'none',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    fontSize: '1.2rem',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '2px',
-                                    boxShadow: '0 5px 20px rgba(156, 39, 176, 0.4)'
-                                }}
-                            >
-                                🤖 AI Stats
+                        <div className="lobby-buttons single">
+                            <button className="join-button" onClick={handleJoin} disabled={joinPending}>
+                                {joinPending ? 'Joining...' : 'Join Game'}
                             </button>
                         </div>
                     </>
@@ -1791,79 +1833,51 @@ const Game = () => {
                             Watch the graphs below to see improvement over time!
                         </p>
 
-                        <div className="lobby-buttons" style={{ display: 'flex', gap: '20px', marginTop: '30px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <div className="lobby-buttons" style={{ gridTemplateColumns: '1fr' }}>
                             <button
                                 className="ai-stats-button"
                                 onClick={() => {
+                                    setAiStatsData(null);
                                     socket.emit('getAIStats');
                                     setShowAIStats(true);
                                 }}
-                                style={{
-                                    padding: '18px 30px',
-                                    background: 'linear-gradient(135deg, #9c27b0, #673ab7)',
-                                    border: 'none',
-                                    borderRadius: '12px',
-                                    color: 'white',
-                                    fontSize: '1.2rem',
-                                    fontWeight: '700',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '2px',
-                                    boxShadow: '0 5px 20px rgba(156, 39, 176, 0.4)'
-                                }}
                             >
-                                📊 View Training History
+                                AI Stats
                             </button>
                         </div>
                     </>
                 )}
 
-                {showAIStats && aiStatsData && (
-                    <div className="ai-stats-modal" style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        background: 'rgba(0, 0, 0, 0.9)',
-                        zIndex: 2000,
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        overflowY: 'auto'
-                    }}>
-                        <div className="stats-content" style={{
-                            background: '#001e3c',
-                            border: '2px solid #00bfff',
-                            borderRadius: '20px',
-                            padding: '40px',
-                            width: '90%',
-                            maxWidth: '1000px',
-                            maxHeight: '90vh',
-                            overflowY: 'auto',
-                            color: 'white',
-                            position: 'relative'
-                        }}>
-                            <button
-                                onClick={() => setShowAIStats(false)}
-                                style={{
-                                    position: 'absolute',
-                                    top: '20px',
-                                    right: '20px',
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#fff',
-                                    fontSize: '24px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                ✕
-                            </button>
+                {showAIStats && (
+                    <div
+                        className="modal-overlay"
+                        onMouseDown={(e) => {
+                            if (e.target === e.currentTarget) setShowAIStats(false);
+                        }}
+                        role="presentation"
+                    >
+                        <div className="modal-panel ai-stats-modal-panel" role="dialog" aria-modal="true" aria-label="AI Stats">
+                            <div className="modal-header">
+                                <div className="modal-title">AI Stats</div>
+                                <button
+                                    ref={aiStatsCloseBtnRef}
+                                    type="button"
+                                    className="modal-close"
+                                    onClick={() => setShowAIStats(false)}
+                                    aria-label="Close AI stats"
+                                >
+                                    ×
+                                </button>
+                            </div>
 
-                            <h2 style={{ textAlign: 'center', color: '#00bfff', fontSize: '2.5rem', marginBottom: '30px' }}>
-                                🤖 AI Performance Statistics
-                            </h2>
+                            <div className="modal-body">
+                                {!aiStatsData ? (
+                                    <div className="modal-loading">Loading…</div>
+                                ) : (
+                                    <>
+                                        <h2 style={{ textAlign: 'center', color: '#00bfff', fontSize: '2rem', margin: '6px 0 18px 0' }}>
+                                            AI Performance
+                                        </h2>
 
                             <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                                 <div className="stat-card" style={{ background: 'rgba(255,255,255,0.1)', padding: '20px', borderRadius: '10px', textAlign: 'center' }}>
@@ -1940,7 +1954,7 @@ const Game = () => {
                             </h3>
 
                             <div className="chart-container" style={{
-                                height: '400px',
+                                height: 'min(400px, 55vh)',
                                 background: 'rgba(0,0,0,0.3)',
                                 borderRadius: '10px',
                                 padding: '20px',
@@ -1991,7 +2005,6 @@ const Game = () => {
                                     const maxGames = dataPoints[dataPoints.length - 1].gamesPlayed;
                                     const maxRatio = Math.max(...dataPoints.map(p => p.ratio), 2); // At least 2 for scale
                                     const chartHeight = 300;
-                                    const chartWidth = 100; // percentage
 
                                     return (
                                         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
@@ -2091,7 +2104,7 @@ const Game = () => {
                                                     <polygon
                                                         points={
                                                             `0,${chartHeight} ` +
-                                                            dataPoints.map((point, i) => {
+                                                            dataPoints.map((point) => {
                                                                 const x = (point.gamesPlayed / maxGames) * 100;
                                                                 const y = chartHeight - ((point.ratio / maxRatio) * chartHeight);
                                                                 return `${x}%,${y}`;
@@ -2103,7 +2116,7 @@ const Game = () => {
 
                                                     {/* Main line */}
                                                     <polyline
-                                                        points={dataPoints.map((point, i) => {
+                                                        points={dataPoints.map((point) => {
                                                             const x = (point.gamesPlayed / maxGames) * 100;
                                                             const y = chartHeight - ((point.ratio / maxRatio) * chartHeight);
                                                             return `${x}%,${y}`;
@@ -2551,7 +2564,6 @@ const Game = () => {
                                         const total = stats.wins + stats.losses;
                                         if (total === 0) return null;
                                         const winRate = (stats.wins / total) * 100;
-                                        const card = Object.values(CARD_ICONS).find((_, i) => Object.keys(CARD_ICONS)[i] === cardId) ? cardId : cardId; // Just getting name
 
                                         return (
                                             <div key={cardId} style={{
@@ -2575,6 +2587,9 @@ const Game = () => {
                                     })}
                             </div>
 
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -2594,93 +2609,27 @@ const Game = () => {
     return (
         <div className="game-container">
             {/* Connection Status Indicator */}
-            <div style={{
-                position: 'fixed',
-                top: '10px',
-                right: '10px',
-                zIndex: 1000,
-                padding: '8px 16px',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: 'bold',
-                pointerEvents: 'none',
-                background: connectionStatus === 'connected'
-                    ? 'rgba(76, 175, 80, 0.9)'
-                    : connectionStatus === 'reconnecting'
-                        ? 'rgba(255, 193, 7, 0.9)'
-                        : 'rgba(244, 67, 54, 0.9)',
-                color: '#fff',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-            }}>
-                <span style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    background: connectionStatus === 'connected' ? '#4CAF50' : connectionStatus === 'reconnecting' ? '#FFC107' : '#F44336',
-                    animation: connectionStatus === 'reconnecting' ? 'pulse 1s infinite' : 'none'
-                }}></span>
+            <div
+                className={`connection-status ${connectionStatus}`}
+                aria-live="polite"
+                aria-atomic="true"
+            >
+                <span className="connection-dot" aria-hidden="true" />
                 {connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Disconnected'}
             </div>
 
             {/* Toast Notifications */}
-            <div style={{
-                position: 'fixed',
-                top: '60px',
-                right: '10px',
-                zIndex: 1000,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                pointerEvents: 'none'
-            }}>
+            <div className="toast-stack" aria-live="polite" aria-relevant="additions removals">
                 {toasts.map(toast => (
                     <div
                         key={toast.id}
-                        style={{
-                            padding: '12px 20px',
-                            borderRadius: '8px',
-                            background: toast.type === 'error'
-                                ? 'rgba(244, 67, 54, 0.95)'
-                                : toast.type === 'success'
-                                    ? 'rgba(76, 175, 80, 0.95)'
-                                    : toast.type === 'warning'
-                                        ? 'rgba(255, 193, 7, 0.95)'
-                                        : 'rgba(33, 150, 243, 0.95)',
-                            color: '#fff',
-                            fontSize: '0.9rem',
-                            fontWeight: '500',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                            animation: 'slideInRight 0.3s ease-out',
-                            minWidth: '200px',
-                            maxWidth: '400px',
-                            pointerEvents: 'auto',
-                            cursor: 'pointer'
-                        }}
+                        className={`toast ${toast.type || 'info'}`}
                         onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
                     >
                         {toast.message}
                     </div>
                 ))}
             </div>
-
-            {/* Probability Tree Toggle + Panel */}
-            <button
-                className="prob-tree-toggle"
-                onClick={() => setShowProbabilityTree(s => !s)}
-                aria-pressed={showProbabilityTree}
-            >
-                {showProbabilityTree ? 'Hide Probability Tree' : 'Show Probability Tree'}
-            </button>
-            {showProbabilityTree && (
-                <ProbabilityTree
-                    gameState={gameState}
-                    myPlayerId={myPlayer?.id}
-                    onClose={() => setShowProbabilityTree(false)}
-                />
-            )}
 
             <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <canvas
@@ -2848,7 +2797,14 @@ const Game = () => {
                                         {p.username || `Player ${p.id.substr(0, 4)}`}
                                         {myPlayer && p.id === myPlayer.id && ' (YOU)'}
                                         {p.id === gameState.roomLeader && ' 👑'}
-                                        {p.isAI && ' 🤖'}
+                                        {p.isAI && (
+                                            <>
+                                                {' 🤖 '}
+                                                <span style={{ color: '#aaa', fontSize: '0.85rem' }}>
+                                                    ({(p.aiSkill || gameState.aiDifficulty || (gameState.useMLAI ? 'hardest' : 'normal'))})
+                                                </span>
+                                            </>
+                                        )}
                                     </div>
                                     {winProb && (
                                         <div className="ai-win-prob" style={{
@@ -2924,22 +2880,73 @@ const Game = () => {
                             </div>
 
                             <div className="setting-group">
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={!!gameState.useMLAI}
-                                        onChange={(e) => socket.emit('updateRoomSettings', {
-                                            gameId,
-                                            settings: { useMLAI: e.target.checked }
-                                        })}
-                                        style={{ marginRight: '8px' }}
-                                    />
-                                    Use Machine Learning AI (experimental)
-                                </label>
-                                <div style={{ fontSize: '0.8rem', color: '#aaa', marginTop: '4px' }}>
-                                    When enabled, AI bots use a neural network trained from past games instead of only the heuristic strategy.
+                                <label>AI Skill (default)</label>
+                                <select
+                                    value={gameState.aiDifficulty || (gameState.useMLAI ? 'hardest' : 'normal')}
+                                    onChange={(e) => socket.emit('updateRoomSettings', {
+                                        gameId,
+                                        settings: { aiDifficulty: e.target.value }
+                                    })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px 12px',
+                                        background: 'rgba(0,0,0,0.3)',
+                                        border: '1px solid rgba(255,255,255,0.25)',
+                                        borderRadius: '10px',
+                                        color: '#fff',
+                                        fontSize: '1rem'
+                                    }}
+                                >
+                                    <option value="easy">Easy (makes mistakes)</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="hard">Hard (stats-driven)</option>
+                                    <option value="hardest">Hardest (TensorFlow + stats)</option>
+                                </select>
+                                <div style={{ fontSize: '0.8rem', color: '#aaa', marginTop: '6px' }}>
+                                    All bots have the same cards dealt and elixir. Skill only changes decision-making quality.
                                 </div>
                             </div>
+
+                            {(gameState.aiPlayerCount || 0) > 0 && (
+                                <div className="setting-group">
+                                    <label>Per-bot Skill (optional)</label>
+                                    <div style={{ display: 'grid', gap: '10px' }}>
+                                        {Array.from({ length: gameState.aiPlayerCount || 0 }).map((_, i) => {
+                                            const current = (gameState.aiPlayerSkills && gameState.aiPlayerSkills[i])
+                                                || gameState.aiDifficulty
+                                                || (gameState.useMLAI ? 'hardest' : 'normal');
+                                            return (
+                                                <div key={i} style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '10px', alignItems: 'center' }}>
+                                                    <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Bot {i + 1}</div>
+                                                    <select
+                                                        value={current}
+                                                        onChange={(e) => {
+                                                            const next = Array.isArray(gameState.aiPlayerSkills) ? [...gameState.aiPlayerSkills] : [];
+                                                            next[i] = e.target.value;
+                                                            socket.emit('updateRoomSettings', { gameId, settings: { aiPlayerSkills: next } });
+                                                        }}
+                                                        style={{
+                                                            width: '100%',
+                                                            padding: '8px 10px',
+                                                            background: 'rgba(0,0,0,0.3)',
+                                                            border: '1px solid rgba(255,255,255,0.25)',
+                                                            borderRadius: '10px',
+                                                            color: '#fff',
+                                                            fontSize: '0.95rem'
+                                                        }}
+                                                    >
+                                                        <option value="easy">Easy</option>
+                                                        <option value="normal">Normal</option>
+                                                        <option value="hard">Hard</option>
+                                                        <option value="hardest">Hardest</option>
+                                                    </select>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {gameState.useMLAI && (
                                 <div className="setting-group">
                                     <div style={{ fontSize: '0.9rem', color: '#00e5ff' }}>
@@ -2972,9 +2979,17 @@ const Game = () => {
                                 <span className="setting-value">{gameState.aiPlayerCount || 0}</span>
                             </div>
                             <div className="setting-info">
-                                <span className="setting-label">AI Engine:</span>
+                                <span className="setting-label">AI Skill:</span>
                                 <span className="setting-value">
-                                    {gameState.useMLAI ? 'TensorFlow ML (Enabled)' : 'Heuristic'}
+                                    {(() => {
+                                        const n = gameState.aiPlayerCount || 0;
+                                        if (n <= 0) return (gameState.aiDifficulty || 'normal');
+                                        const skills = Array.from({ length: n }).map((_, i) =>
+                                            (gameState.aiPlayerSkills && gameState.aiPlayerSkills[i]) || gameState.aiDifficulty || (gameState.useMLAI ? 'hardest' : 'normal')
+                                        );
+                                        const unique = Array.from(new Set(skills));
+                                        return unique.length > 1 ? 'mixed' : unique[0];
+                                    })()}
                                 </span>
                             </div>
                             {gameState.useMLAI && (
@@ -3028,8 +3043,7 @@ const Game = () => {
                                         className="mode-badge phase-indicator"
                                         style={{
                                             backgroundColor: gameState.gamePhase.color,
-                                            marginLeft: '8px',
-                                            animation: 'pulse 2s ease-in-out infinite'
+                                            marginLeft: '8px'
                                         }}
                                         title={gameState.gamePhase.description}
                                     >
