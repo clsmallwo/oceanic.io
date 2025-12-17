@@ -1,5 +1,5 @@
 {
-  "lastUpdated": 1765323928562,
+  "lastUpdated": 1765948546523,
   "weights": [
     {
       "shape": [
@@ -1168,8 +1168,8 @@
       ]
     }
   ],
-  "sampleCount": 540,
-  "mlWinRate": 0.44482758620689655,
-  "baselineWinRate": 0.3137931034482759,
-  "trainingGames": 290
+  "sampleCount": 580,
+  "mlWinRate": 0.575,
+  "baselineWinRate": 0.425,
+  "trainingGames": 40
 }
