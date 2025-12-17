@@ -1,0 +1,13 @@
+# Runtime artifacts / local state
+.pids/
+*.pid
+*.log
+client.log
+server.log
+
+# Server runtime stats (regenerated)
+server/ai_stats.json
+
+# Local build/deploy artifacts
+*.tar.gz
+

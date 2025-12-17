@@ -1318,8 +1318,8 @@ const Game = () => {
 
     const handleCanvasClick = (e) => {
         if (!selectedCard || !myPlayer || myPlayer.eliminated || !canvasRef.current || gameState.status !== 'playing') return;
-        // In turn mode, only deploy on your turn. In live mode, deploy anytime
-        if (gameState.gameMode === 'turns' && gameState.currentTurn !== socket.id) return;
+        // Turn-based: only deploy on your turn
+        if (gameState.currentTurn !== socket.id) return;
 
         if (selectedCard.type === 'defense') {
             // Defensive units need grid placement
@@ -2729,7 +2729,6 @@ const Game = () => {
                     >
                         <div>
                             Turn #{gameState.turnNumber || 1}
-                            {gameState.gameMode === 'live' && ' (Live)'}
                         </div>
                         <div style={{ color: '#ccc' }}>
                             Players alive:{' '}
@@ -2878,62 +2877,32 @@ const Game = () => {
                             <h3>Game Settings</h3>
 
                             <div className="setting-group">
-                                <label>Game Mode</label>
+                                <label>Movement Mode</label>
                                 <div className="setting-buttons">
                                     <button
-                                        className={`setting-btn ${gameState.gameMode === 'turns' ? 'active' : ''}`}
+                                        className={`setting-btn ${gameState.movementMode === 'automatic' ? 'active' : ''}`}
                                         onClick={() => socket.emit('updateRoomSettings', {
                                             gameId,
-                                            settings: { gameMode: 'turns' }
+                                            settings: { movementMode: 'automatic' }
                                         })}
                                     >
-                                        🔄 Turn-Based
+                                        ⚙️ Automatic
                                     </button>
                                     <button
-                                        className={`setting-btn ${gameState.gameMode === 'live' ? 'active' : ''}`}
+                                        className={`setting-btn ${gameState.movementMode === 'manual' ? 'active' : ''}`}
                                         onClick={() => socket.emit('updateRoomSettings', {
                                             gameId,
-                                            settings: { gameMode: 'live' }
+                                            settings: { movementMode: 'manual' }
                                         })}
-                                        disabled={gameState.aiPlayerCount > 0}
-                                        title={gameState.aiPlayerCount > 0 ? 'Live mode not available with AI players' : ''}
                                     >
-                                        ⚡ Live Mode
-                                        {gameState.aiPlayerCount > 0 && ' (N/A with AI)'}
+                                        🎮 Manual
                                     </button>
                                 </div>
                             </div>
 
-                            {gameState.gameMode === 'turns' && (
-                                <div className="setting-group">
-                                    <label>Movement Mode</label>
-                                    <div className="setting-buttons">
-                                        <button
-                                            className={`setting-btn ${gameState.movementMode === 'automatic' ? 'active' : ''}`}
-                                            onClick={() => socket.emit('updateRoomSettings', {
-                                                gameId,
-                                                settings: { movementMode: 'automatic' }
-                                            })}
-                                        >
-                                            ⚙️ Automatic
-                                        </button>
-                                        <button
-                                            className={`setting-btn ${gameState.movementMode === 'manual' ? 'active' : ''}`}
-                                            onClick={() => socket.emit('updateRoomSettings', {
-                                                gameId,
-                                                settings: { movementMode: 'manual' }
-                                            })}
-                                        >
-                                            🎮 Manual
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
                             <div className="setting-group">
                                 <label>
                                     AI Players: {gameState.aiPlayerCount || 0}
-                                    {gameState.gameMode === 'live' && ' (Not available in Live mode)'}
                                 </label>
                                 <div className="setting-buttons">
                                     {[0, 1, 2, 3].map(num => (
@@ -2945,10 +2914,8 @@ const Game = () => {
                                                 settings: { aiPlayerCount: num }
                                             })}
                                             disabled={
-                                                Object.keys(gameState.players).length + num > 4 ||
-                                                (gameState.gameMode === 'live' && num > 0)
+                                                Object.keys(gameState.players).length + num > 4
                                             }
-                                            title={gameState.gameMode === 'live' && num > 0 ? 'AI players not available in live mode' : ''}
                                         >
                                             {num}
                                         </button>
@@ -2994,14 +2961,12 @@ const Game = () => {
                             <h3>Game Settings</h3>
                             <div className="setting-info">
                                 <span className="setting-label">Mode:</span>
-                                <span className="setting-value">{gameState.gameMode === 'turns' ? '🔄 Turn-Based' : '⚡ Live'}</span>
+                                <span className="setting-value">🔄 Turn-Based</span>
                             </div>
-                            {gameState.gameMode === 'turns' && (
-                                <div className="setting-info">
-                                    <span className="setting-label">Movement:</span>
-                                    <span className="setting-value">{gameState.movementMode === 'automatic' ? '⚙️ Automatic' : '🎮 Manual'}</span>
-                                </div>
-                            )}
+                            <div className="setting-info">
+                                <span className="setting-label">Movement:</span>
+                                <span className="setting-value">{gameState.movementMode === 'automatic' ? '⚙️ Automatic' : '🎮 Manual'}</span>
+                            </div>
                             <div className="setting-info">
                                 <span className="setting-label">AI Players:</span>
                                 <span className="setting-value">{gameState.aiPlayerCount || 0}</span>
@@ -3053,56 +3018,47 @@ const Game = () => {
                             </span>
                         </div>
                         <div className="turn-info">
-                            {gameState.gameMode === 'live' ? (
-                                <div className="live-mode-indicator">
-                                    <span className="mode-badge live">⚡ LIVE MODE</span>
-                                    <span className="live-desc">Play anytime!</span>
+                            <div className="turn-label">
+                                Turn #{gameState.turnNumber || 1}
+                                {gameState.movementMode === 'manual' && (
+                                    <span className="mode-badge manual">MANUAL MODE</span>
+                                )}
+                                {gameState.gamePhase && gameState.gamePhase.phase > 1 && (
+                                    <span
+                                        className="mode-badge phase-indicator"
+                                        style={{
+                                            backgroundColor: gameState.gamePhase.color,
+                                            marginLeft: '8px',
+                                            animation: 'pulse 2s ease-in-out infinite'
+                                        }}
+                                        title={gameState.gamePhase.description}
+                                    >
+                                        {gameState.gamePhase.name}
+                                    </span>
+                                )}
+                            </div>
+                            {gameState.currentTurn === socket.id ? (
+                                <div className="your-turn">
+                                    <span className="turn-indicator">YOUR TURN</span>
+                                    <div className="turn-timer" style={{
+                                        width: `${(gameState.turnTimeRemaining / 30) * 100}%`,
+                                        backgroundColor: gameState.turnTimeRemaining < 10 ? '#ff4444' : '#44ff44'
+                                    }}></div>
+                                    <span className="timer-text">{Math.ceil(gameState.turnTimeRemaining || 0)}s</span>
                                 </div>
                             ) : (
-                                <>
-                                    <div className="turn-label">
-                                        Turn #{gameState.turnNumber || 1}
-                                        {gameState.movementMode === 'manual' && (
-                                            <span className="mode-badge manual">MANUAL MODE</span>
-                                        )}
-                                        {gameState.gamePhase && gameState.gamePhase.phase > 1 && (
-                                            <span
-                                                className="mode-badge phase-indicator"
-                                                style={{
-                                                    backgroundColor: gameState.gamePhase.color,
-                                                    marginLeft: '8px',
-                                                    animation: 'pulse 2s ease-in-out infinite'
-                                                }}
-                                                title={gameState.gamePhase.description}
-                                            >
-                                                {gameState.gamePhase.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    {gameState.currentTurn === socket.id ? (
-                                        <div className="your-turn">
-                                            <span className="turn-indicator">YOUR TURN</span>
-                                            <div className="turn-timer" style={{
-                                                width: `${(gameState.turnTimeRemaining / 30) * 100}%`,
-                                                backgroundColor: gameState.turnTimeRemaining < 10 ? '#ff4444' : '#44ff44'
-                                            }}></div>
-                                            <span className="timer-text">{Math.ceil(gameState.turnTimeRemaining || 0)}s</span>
-                                        </div>
-                                    ) : (
-                                        <div className="waiting-turn">
-                                            <span className="turn-indicator">WAITING...</span>
-                                            <span className="current-player">
-                                                {gameState.players[gameState.currentTurn]?.username || `Player ${gameState.currentTurn?.substr(0, 4)}`}'s Turn
-                                            </span>
-                                            <div className="turn-timer" style={{
-                                                width: `${(gameState.turnTimeRemaining / 30) * 100}%`,
-                                                backgroundColor: '#ffaa00',
-                                                marginTop: '5px'
-                                            }}></div>
-                                            <span className="timer-text" style={{ fontSize: '1rem' }}>{Math.ceil(gameState.turnTimeRemaining || 0)}s</span>
-                                        </div>
-                                    )}
-                                </>
+                                <div className="waiting-turn">
+                                    <span className="turn-indicator">WAITING...</span>
+                                    <span className="current-player">
+                                        {gameState.players[gameState.currentTurn]?.username || `Player ${gameState.currentTurn?.substr(0, 4)}`}'s Turn
+                                    </span>
+                                    <div className="turn-timer" style={{
+                                        width: `${(gameState.turnTimeRemaining / 30) * 100}%`,
+                                        backgroundColor: '#ffaa00',
+                                        marginTop: '5px'
+                                    }}></div>
+                                    <span className="timer-text" style={{ fontSize: '1rem' }}>{Math.ceil(gameState.turnTimeRemaining || 0)}s</span>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -3116,7 +3072,7 @@ const Game = () => {
                         {myPlayer.hand.map((card, idx) => {
                             const iconSrc = CARD_ICONS[card.id];
                             const isDisabled = myPlayer.elixir < card.cost ||
-                                (gameState.gameMode === 'turns' && gameState.currentTurn !== socket.id);
+                                (gameState.currentTurn !== socket.id);
                             const isSelected = selectedCard?.id === card.id;
 
                             return (
@@ -3263,7 +3219,7 @@ const Game = () => {
                         </div>
                     )}
 
-                    {gameState.gameMode === 'turns' && gameState.currentTurn === socket.id && (
+                    {gameState.currentTurn === socket.id && (
                         <button className="end-turn-btn" onClick={handleEndTurn}>
                             END TURN
                         </button>

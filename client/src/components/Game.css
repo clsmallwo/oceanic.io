@@ -617,38 +617,6 @@ canvas {
     font-style: italic;
 }
 
-/* Live Mode Badge */
-.mode-badge.live {
-    background: linear-gradient(135deg, #44ff44, #00cc00);
-    color: white;
-    box-shadow: 0 2px 8px rgba(68, 255, 68, 0.4);
-    animation: pulse-live 1.5s ease-in-out infinite;
-}
-
-.live-mode-indicator {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-}
-
-.live-desc {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 12px;
-    font-weight: normal;
-}
-
-@keyframes pulse-live {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 2px 8px rgba(68, 255, 68, 0.4);
-    }
-    50% {
-        transform: scale(1.05);
-        box-shadow: 0 4px 16px rgba(68, 255, 68, 0.6);
-    }
-}
-
 .your-turn {
     display: flex;
     flex-direction: column;

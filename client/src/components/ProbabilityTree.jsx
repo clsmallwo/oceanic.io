@@ -16,7 +16,7 @@ function pctColor(pct) {
 function getFactorInfoTooltip(factorName) {
   const n = String(factorName || '').toLowerCase();
   if (n.includes('breakthrough')) {
-    return 'Breakthrough probability = chance that at least 2 offensive units in your current wave get through (X ~ Binomial(n, p)). Here p is computed from live game stats (HP/speed/distance/enemy DPS), not hard-coded.';
+    return 'Breakthrough probability = chance that at least 2 offensive units in your current wave get through (X ~ Binomial(n, p)). Here p is computed from current game stats (HP/speed/distance/enemy DPS), not hard-coded.';
   }
   return null;
 }

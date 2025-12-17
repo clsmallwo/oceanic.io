@@ -1791,7 +1791,8 @@ function createGame(gameId) {
         turnNumber: 0,
         movementMode: 'automatic', // 'automatic' or 'manual'
         movedTroops: new Set(), // Track which troops have moved this turn (for manual mode)
-        gameMode: 'turns', // 'turns' or 'live'
+        // Live mode removed: game is always turn-based
+        gameMode: 'turns',
         aiPlayerCount: 0, // Number of AI players (0-3)
         roomLeader: null, // Socket ID of the room leader
         cardUsage: {}, // Track card usage per player: { playerId: { cardId: count } }
@@ -2098,20 +2099,6 @@ io.on('connection', (socket) => {
             return;
         }
 
-        if (settings.gameMode) {
-            if (settings.gameMode !== 'turns' && settings.gameMode !== 'live') {
-                socket.emit('error', 'Invalid game mode');
-                return;
-            }
-
-            // Don't allow live mode with AI players
-            if (settings.gameMode === 'live' && game.aiPlayerCount > 0) {
-                socket.emit('error', 'Cannot set live mode with AI players');
-                return;
-            }
-            game.gameMode = settings.gameMode;
-        }
-
         if (settings.movementMode) {
             if (settings.movementMode !== 'automatic' && settings.movementMode !== 'manual') {
                 socket.emit('error', 'Invalid movement mode');
@@ -2122,11 +2109,6 @@ io.on('connection', (socket) => {
 
         if (typeof settings.aiPlayerCount === 'number') {
             const newAICount = clamp(Math.floor(settings.aiPlayerCount), 0, 3);
-            // Don't allow AI players in live mode
-            if (game.gameMode === 'live' && newAICount > 0) {
-                socket.emit('error', 'Cannot add AI players in live mode');
-                return;
-            }
             game.aiPlayerCount = newAICount;
         }
 
@@ -2232,15 +2214,9 @@ io.on('connection', (socket) => {
             game.status = 'playing';
             game.gameStartTime = Date.now();
             game.turnOrder = Object.keys(game.players);
-
-            // In live mode, there's no turn order - everyone plays simultaneously
-            if (game.gameMode === 'live') {
-                game.currentTurn = null; // No turns in live mode
-            } else {
-                game.currentTurn = game.turnOrder[0];
-                game.turnStartTime = Date.now();
-                game.turnTimeRemaining = TURN_DURATION;
-            }
+            game.currentTurn = game.turnOrder[0];
+            game.turnStartTime = Date.now();
+            game.turnTimeRemaining = TURN_DURATION;
             game.turnNumber = 1;
 
             console.log(`Game ${gameId} started in ${game.gameMode} mode. Players:`, totalPlayers);
@@ -2276,11 +2252,6 @@ io.on('connection', (socket) => {
 
         if (game.status !== 'playing') {
             socket.emit('error', 'Game is not in progress');
-            return;
-        }
-
-        if (game.gameMode !== 'turns') {
-            socket.emit('error', 'Turn-based mode is not active');
             return;
         }
 
@@ -2519,8 +2490,8 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // In turn mode, only current player can deploy. In live mode, anyone can deploy anytime
-        if (game.gameMode === 'turns' && socket.id !== game.currentTurn) {
+        // Turn-based: only current player can deploy
+        if (socket.id !== game.currentTurn) {
             socket.emit('error', 'Not your turn');
             return;
         }
@@ -2768,6 +2739,76 @@ function findPath(startX, startY, endX, endY, trenchSet, bridges = null) {
 
     // No path found – caller will handle this and avoid moving the troop
     return [];
+}
+
+// Offensive pathfinding (recode): simple, deterministic shortest-path BFS.
+// - Ignores other troops entirely (stacking allowed)
+// - Only trench tiles are impassable
+// - No "bridge preference", no center-routing, no split-path heuristics
+function findOffensivePath(startX, startY, endX, endY, trenchSet) {
+    if (startX === endX && startY === endY) return [];
+
+    const startKey = `${startX},${startY}`;
+    const endKey = `${endX},${endY}`;
+
+    const queue = [{ x: startX, y: startY }];
+    const visited = new Set([startKey]);
+    const cameFrom = new Map(); // key -> prevKey
+
+    while (queue.length > 0) {
+        const cur = queue.shift();
+        const curKey = `${cur.x},${cur.y}`;
+
+        if (curKey === endKey) {
+            const path = [];
+            let k = endKey;
+            while (k !== startKey) {
+                const [px, py] = k.split(',').map(Number);
+                path.unshift({ x: px, y: py });
+                k = cameFrom.get(k);
+                if (!k) break; // safety
+            }
+            return path;
+        }
+
+        const neighbors = [
+            { x: cur.x + 1, y: cur.y },
+            { x: cur.x - 1, y: cur.y },
+            { x: cur.x, y: cur.y + 1 },
+            { x: cur.x, y: cur.y - 1 }
+        ];
+
+        for (const n of neighbors) {
+            const key = `${n.x},${n.y}`;
+            if (visited.has(key)) continue;
+            if (!isPassable(n.x, n.y, trenchSet)) continue;
+            visited.add(key);
+            cameFrom.set(key, curKey);
+            queue.push(n);
+        }
+    }
+
+    return [];
+}
+
+function getOrAssignSplitBridgeIndex(game, troop) {
+    // Ensure a stable split index per troop+target; reset if target changed.
+    if (troop._lastTargetBaseId !== troop.targetBaseId) {
+        troop.attackPathIndex = undefined;
+        troop._lastTargetBaseId = troop.targetBaseId;
+    }
+
+    if (troop.attackPathIndex === undefined) {
+        const troopsOnTarget = game.troops.filter(t =>
+            t.id !== troop.id &&
+            t.type === 'offense' &&
+            t.ownerId === troop.ownerId &&
+            t.targetBaseId === troop.targetBaseId
+        );
+        troop.attackPathIndex = troopsOnTarget.length % 2; // 0,1 alternating
+    }
+
+    return troop.attackPathIndex;
 }
 
 // Smart game acceleration system to keep games under 200 turns (~30 minutes)
@@ -3615,8 +3656,9 @@ function moveTroopsOnTurnEnd(game, aiOnly = false, options = {}) {
         if (targetGridX === undefined || targetGridY === undefined) return;
 
         // If the target is the current tile (common for patrol units), force a 1-tile move
-        // to ensure moving units always advance each turn.
-        if (troop.gridX === targetGridX && troop.gridY === targetGridY) {
+        // so defensive units don't "stall". Offensive units should NOT do this: when they
+        // reach an enemy base they should stay and stack while attacking.
+        if (troop.type === 'defense' && troop.gridX === targetGridX && troop.gridY === targetGridY) {
             const candidates = [
                 { x: troop.gridX + 1, y: troop.gridY },
                 { x: troop.gridX - 1, y: troop.gridY },
@@ -3634,70 +3676,59 @@ function moveTroopsOnTurnEnd(game, aiOnly = false, options = {}) {
             }
         }
 
-        // Calculate path using A* if we don't have one or if we're close to end of path
+        // Calculate path if we don't have one
         if (!troop.path || troop.path.length === 0) {
-            // Pass bridge information to pathfinding for strict bridge following
-            const bridges = game.terrain.bridges || [];
-            const ownerBase = game.players[troop.ownerId];
-            const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
+            // Offensive troops: recoded pathfinding (simple BFS, no heuristics)
+            if (troop.type === 'offense') {
+                if (troop.gridX === targetGridX && troop.gridY === targetGridY) {
+                    troop.path = [];
+                    return;
+                }
 
-            // ALWAYS start with a valid path to target
-            let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
+                let path = null;
 
-            // Only apply special routing if we have a base path to work with
-            if (path && path.length > 0) {
-                // Check if attacking base directly across (opposite side)
-                const targetIsAcross = ownerBase && isAcrossFromBase(ownerBase, { gridX: targetGridX, gridY: targetGridY });
+                // Split-bridge behavior (neighboring bases only): alternate offensive troops across the two bridges.
+                const ownerBase = game.players[troop.ownerId];
+                const targetBase = troop.targetBaseId ? game.players[troop.targetBaseId] : null;
+                const bridges = game.terrain.bridges || [];
+                const targetIsNeighboring = ownerBase && targetBase &&
+                    isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
 
-                if (targetIsAcross) {
-                    // ACROSS ATTACK: Force troops through center bridge only
-                const centerX = 20;
-                const centerY = 20;
-                const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
-                const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
-
-                    // Only use center route if both segments are valid
-                if (path1.length > 0 && path2.length > 0) {
-                        path = [...path1, ...path2];
-                    }
-                    // Otherwise keep direct path
-                } else if (targetIsNeighboring) {
-                    // SPLIT ATTACK: For neighboring bases, alternate troops between two bridge paths
+                if (targetIsNeighboring && bridges.length > 0) {
                     const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
-
-                    // Assign this troop a path index if it doesn't have one
-                    if (troop.attackPathIndex === undefined) {
-                        // Count existing troops attacking this target to alternate paths
-                        const troopsOnTarget = game.troops.filter(t =>
-                            t.ownerId === troop.ownerId &&
-                            t.targetBaseId === troop.targetBaseId &&
-                            t.id !== troop.id
-                        );
-                        troop.attackPathIndex = troopsOnTarget.length % 2; // Alternate 0, 1, 0, 1...
-                    }
-
-                    // Route through the assigned bridge
-                    const bridgeToUse = twoBridges[troop.attackPathIndex];
-                    if (bridgeToUse) {
-                        const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
-                        const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
-
-                        // Only use bridge route if both segments are valid
-                        if (path1.length > 0 && path2.length > 0) {
-                            path = [...path1, ...path2];
+                    if (twoBridges && twoBridges.length >= 2) {
+                        const idx = getOrAssignSplitBridgeIndex(game, troop);
+                        const bridgeToUse = twoBridges[idx] || twoBridges[0];
+                        if (bridgeToUse) {
+                            const pathToBridge = findOffensivePath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet);
+                            const pathBridgeToBase = findOffensivePath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet);
+                            if (pathToBridge.length > 0 && pathBridgeToBase.length > 0) {
+                                path = [...pathToBridge, ...pathBridgeToBase];
+                            }
                         }
-                        // Otherwise keep direct path
                     }
                 }
-            }
 
-            // CRITICAL: Always ensure we have a valid path before moving
-            if (!path || path.length === 0) {
-                console.log(`⚠️ Troop ${troop.id} (${troop.name}) has no path to target (${targetGridX}, ${targetGridY})! Skipping movement.`);
-                return; // Skip this troop if no valid path exists
-            }
+                // Fallback: direct shortest path to base
+                if (!path || path.length === 0) {
+                    path = findOffensivePath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet);
+                }
 
-            troop.path = path;
+                if (!path || path.length === 0) {
+                    console.log(`⚠️ Offense troop ${troop.id} (${troop.name}) has no path to target (${targetGridX}, ${targetGridY})!`);
+                    return;
+                }
+
+                troop.path = path;
+            } else {
+                // Defensive troops: keep existing general pathing
+                const bridges = game.terrain.bridges || [];
+                const path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
+                if (!path || path.length === 0) {
+                    return;
+                }
+                troop.path = path;
+            }
         }
 
         // Move along the path
@@ -3729,58 +3760,15 @@ function moveTroopsOnTurnEnd(game, aiOnly = false, options = {}) {
             // Remove this step from path
             troop.path.shift();
 
-            // If we're getting close to the end or path is empty, recalculate
-            if (troop.path.length < 3) {
+            // If we're getting close to the end, defensive units may recalculate their path.
+            // Offensive units use the recoded pathfinder and do not need mid-move heuristics.
+            if (troop.type === 'defense' && troop.path.length < 3) {
                 const dist = Math.abs(troop.gridX - targetGridX) + Math.abs(troop.gridY - targetGridY);
                 if (dist > 1) {
-                    // Pass bridge information to pathfinding for strict bridge following
                     const bridges = game.terrain.bridges || [];
-                    const ownerBase = game.players[troop.ownerId];
-                    const targetIsNeighboring = ownerBase && isNeighboringPlayer(ownerBase.gridX, ownerBase.gridY, targetGridX, targetGridY);
-
-                    // ALWAYS start with a valid direct path
-                    let path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
-
-                    // Only apply special routing if we have a base path
+                    const path = findPath(troop.gridX, troop.gridY, targetGridX, targetGridY, trenchSet, bridges);
                     if (path && path.length > 0) {
-                        // Check if attacking base directly across (opposite side)
-                        const targetIsAcross = ownerBase && isAcrossFromBase(ownerBase, { gridX: targetGridX, gridY: targetGridY });
-
-                        if (targetIsAcross) {
-                            // ACROSS ATTACK: Force troops through center bridge only
-                        const centerX = 20;
-                        const centerY = 20;
-                        const path1 = findPath(troop.gridX, troop.gridY, centerX, centerY, trenchSet, bridges);
-                        const path2 = findPath(centerX, centerY, targetGridX, targetGridY, trenchSet, bridges);
-
-                            // Only use center route if both segments are valid
-                        if (path1.length > 0 && path2.length > 0) {
-                                path = [...path1, ...path2];
-                            }
-                            // Otherwise keep direct path
-                        } else if (targetIsNeighboring && troop.attackPathIndex !== undefined) {
-                            // SPLIT ATTACK: For neighboring bases, use assigned bridge path
-                            const twoBridges = getTwoBridgesForNeighbor(ownerBase, { gridX: targetGridX, gridY: targetGridY }, bridges);
-                            const bridgeToUse = twoBridges[troop.attackPathIndex];
-
-                            if (bridgeToUse) {
-                                const path1 = findPath(troop.gridX, troop.gridY, bridgeToUse.x, bridgeToUse.y, trenchSet, bridges);
-                                const path2 = findPath(bridgeToUse.x, bridgeToUse.y, targetGridX, targetGridY, trenchSet, bridges);
-
-                                // Only use bridge route if both segments are valid
-                                if (path1.length > 0 && path2.length > 0) {
-                                    path = [...path1, ...path2];
-                                }
-                                // Otherwise keep direct path
-                            }
-                        }
-                    }
-
-                    // Only update path if we have a valid one
-                    if (path && path.length > 0) {
-                    troop.path = path;
-                    } else {
-                        console.log(`⚠️ Troop ${troop.id} (${troop.name}) path recalc failed! Keeping old path.`);
+                        troop.path = path;
                     }
                 }
             }
@@ -3789,35 +3777,6 @@ function moveTroopsOnTurnEnd(game, aiOnly = false, options = {}) {
 }
 
 function startGameLoop(gameId) {
-    // Initialize AI timers for live mode
-    const game = games[gameId];
-    if (game.gameMode === 'live') {
-        // In live mode, AI players act every few seconds
-        Object.values(game.players).forEach(player => {
-            if (player.isAI) {
-                scheduleAIAction(gameId, player.id);
-            }
-        });
-
-        // In live mode, regenerate elixir for ALL players (humans and AI equally) every 1.5 seconds
-        game.elixirRegenInterval = setInterval(() => {
-            const g = games[gameId];
-            if (!g || g.status !== 'playing') {
-                if (game.elixirRegenInterval) {
-                    clearInterval(game.elixirRegenInterval);
-                    game.elixirRegenInterval = null;
-                }
-                return;
-            }
-            // Give elixir to ALL players equally
-            Object.values(g.players).forEach(player => {
-                if (player && !player.eliminated) {
-                    player.elixir = clamp((player.elixir || 0) + 3, 0, 15); // Increased from +2 to +3 for faster gameplay
-                }
-            });
-        }, 1000); // 1 second elixir regeneration for very fast gameplay
-    }
-
     const interval = setInterval(() => {
         const game = games[gameId];
         if (!game || game.status !== 'playing') {
@@ -3833,26 +3792,14 @@ function startGameLoop(gameId) {
         const dt = (now - game.lastUpdate) / 1000;
         game.lastUpdate = now;
 
-        // Update turn timer (only in turn-based mode)
-        if (game.gameMode === 'turns') {
-            const elapsed = (now - game.turnStartTime) / 1000;
-            game.turnTimeRemaining = Math.max(0, TURN_DURATION - elapsed);
+        // Update turn timer (turn-based only; live mode removed)
+        const elapsed = (now - game.turnStartTime) / 1000;
+        game.turnTimeRemaining = Math.max(0, TURN_DURATION - elapsed);
 
-            // Auto-advance turn when time runs out
-            if (game.turnTimeRemaining <= 0) {
-                nextTurn(gameId);
-                return;
-            }
-        }
-
-        // In live mode, continuously handle combat and movement
-        if (game.gameMode === 'live') {
-            // Combat happens continuously
-            applyCombatDamage(game, gameId);
-
-            // Move troops continuously in live mode.
-            // Stacking is allowed, and movable troops should keep advancing.
-            moveTroopsOnTurnEnd(game, false); // All troops
+        // Auto-advance turn when time runs out
+        if (game.turnTimeRemaining <= 0) {
+            nextTurn(gameId);
+            return;
         }
 
         // Update troop grid positions
@@ -3864,34 +3811,6 @@ function startGameLoop(gameId) {
 
         io.to(gameId).emit('gameState', serializeGameState(game));
     }, 1000 / 60); // 60 FPS for smooth gameplay
-}
-
-// Schedule AI actions for live mode - instant response, no delays
-function scheduleAIAction(gameId, aiPlayerId) {
-    const makeMove = async () => {
-        const game = games[gameId];
-        if (!game || game.status !== 'playing') return;
-
-        const aiPlayer = game.players[aiPlayerId];
-        if (!aiPlayer || aiPlayer.eliminated) return;
-
-        // AI makes moves in live mode instantly when they have elixir
-        if (game.gameMode === 'live' && aiPlayer.elixir >= 2) {
-            try {
-                await makeAIMoves(gameId, aiPlayerId);
-            } catch (err) {
-                console.error(`Error in live mode AI moves:`, err);
-            }
-        }
-
-        // Check again very quickly (every 200ms) - AI acts as soon as they have elixir
-        if (game.gameMode === 'live' && game.status === 'playing') {
-            setTimeout(makeMove, 200); // Very fast AI response
-        }
-    };
-
-    // Start immediately with no initial delay
-    makeMove();
 }
 
 // ============================================================================
